@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.OrderMapper">
+
+
+    <!-- 创建订单 -->
+
+    <insert id="insertOrder"
+            parameterType="org.csu.restaurant.restaurantserver.entity.Order"
+            useGeneratedKeys="true"
+            keyProperty="id">
+
+
+        INSERT INTO orders
+        (
+        table_id,
+        total_price,
+        pay_status,
+        create_time
+        )
+
+        VALUES
+        (
+        #{tableId},
+        #{totalPrice},
+        0,
+        NOW()
+        )
+
+
+    </insert>
+
+
+
+    <!-- 插入订单详情 -->
+
+    <insert id="insertItem"
+            parameterType="org.csu.restaurant.restaurantserver.entity.OrderItem">
+
+
+        INSERT INTO order_item
+        (
+        order_id,
+        dish_id,
+        count,
+        price
+        )
+
+        VALUES
+        (
+        #{orderId},
+        #{dishId},
+        #{count},
+        #{price}
+        )
+
+    </insert>
+
+    <!--查询订单-->
+    <select id="findById"
+            resultType="org.csu.restaurant.restaurantserver.entity.Order">
+
+        SELECT
+
+            id,
+            table_id AS tableId,
+            total_price AS totalPrice,
+            pay_status AS payStatus,
+            create_time AS createTime,
+            finish_time AS finishTime
+
+        FROM orders
+
+        WHERE id=#{id}
+
+    </select>
+
+    <!--修改支付状态-->
+    <update id="updatePayStatus">
+
+        UPDATE orders
+
+        SET
+
+        pay_status=1,
+        finish_time=NOW()
+
+        WHERE id=#{id}
+
+
+    </update>
+
+
+    <select id="findUnpaid"
+            resultType="org.csu.restaurant.restaurantserver.entity.Order">
+
+        select *
+
+        from orders
+
+        where table_id=#{tableId}
+
+        and pay_status=0
+
+        order by create_time desc
+
+        limit 1
+
+    </select>
+
+
+    <select id="findDetailByTableId"
+            resultType="org.csu.restaurant.restaurantserver.dto.OrderDetailDTO">
+
+
+        SELECT
+        o.id AS orderId,
+        o.table_id AS tableId,
+        o.total_price AS totalPrice,
+        o.pay_status AS payStatus,
+        o.create_time AS createTime
+
+        FROM orders o
+
+        WHERE o.table_id=#{tableId}
+
+        AND o.pay_status=0
+
+        ORDER BY o.create_time DESC
+
+        LIMIT 1
+
+    </select>
+
+
+
+
+
+</mapper>

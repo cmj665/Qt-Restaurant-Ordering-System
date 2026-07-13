@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.PaymentMapper">
+
+
+    <insert id="insertPayment"
+            parameterType="org.csu.restaurant.restaurantserver.entity.Payment">
+
+
+        INSERT INTO payment
+        (
+        order_id,
+        pay_type,
+        pay_money,
+        pay_time
+        )
+
+        VALUES
+        (
+        #{orderId},
+        #{payType},
+        #{payMoney},
+        NOW()
+        )
+
+
+    </insert>
+
+
+</mapper>

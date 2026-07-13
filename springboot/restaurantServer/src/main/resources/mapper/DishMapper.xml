@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.DishMapper">
+
+    <!--查询u松油未删除的菜品-->
+    <select id="findAll"
+        resultType="org.csu.restaurant.restaurantserver.entity.Dish">
+
+        SELECT
+            id,
+            cat_id AS catId,
+            name,
+            price,
+            stock,
+            picture,
+            description,
+            is_deleted AS isDeleted
+        FROM dish
+        WHERE is_deleted = 0
+
+    </select>
+
+    <!--新增菜品-->
+    <insert id="addDish"
+            parameterType="org.csu.restaurant.restaurantserver.entity.Dish">
+
+        INSERT INTO dish
+        (
+            cat_id,
+            name,
+            price,
+            stock,
+            picture,
+            description,
+            is_deleted
+        )
+
+        VALUES
+        (
+            #{catId},
+            #{name},
+            #{price},
+            #{stock},
+            #{picture},
+            #{description},
+            0
+        )
+
+    </insert>
+
+    <!--修改菜品-->
+    <update id="updateDish"
+            parameterType="org.csu.restaurant.restaurantserver.entity.Dish">
+
+        UPDATE dish
+
+        SET
+
+            cat_id=#{catId},
+            name=#{name},
+            price=#{price},
+            stock=#{stock},
+            picture=#{picture},
+            description=#{description}
+
+        WHERE id=#{id}
+
+    </update>
+
+    <!-- 逻辑删除 -->
+
+    <update id="deleteDish">
+
+        UPDATE dish
+
+        SET is_deleted=1
+
+        WHERE id=#{id}
+
+    </update>
+
+    <!-- 根据菜名找Id -->
+
+    <select id="findById"
+            resultType="org.csu.restaurant.restaurantserver.entity.Dish">
+        SELECT
+        id,
+        cat_id AS catId,
+        name,
+        price,
+        stock,
+        picture,
+        description,
+        is_deleted AS isDeleted
+
+        FROM dish
+
+        WHERE id=#{id}
+
+    </select>
+
+    <update id="reduceStock">
+
+        UPDATE dish
+        SET stock = stock - #{count}
+
+        WHERE id=#{id}
+        AND stock >= #{count}
+
+    </update>
+
+
+
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.RankMapper">
+    <select id="hotRank"
+            resultType="org.csu.restaurant.restaurantserver.dto.HotDishDTO">
+
+
+        SELECT
+        d.name,
+
+        SUM(oi.count) saleNum
+
+        FROM order_item oi
+
+        JOIN dish d
+
+        ON oi.dish_id=d.id
+
+        JOIN orders o
+
+        ON oi.order_id=o.id
+
+        WHERE o.pay_status=1
+
+        GROUP BY d.id
+
+        ORDER BY saleNum DESC
+        LIMIT 10
+
+    </select>
+
+</mapper>

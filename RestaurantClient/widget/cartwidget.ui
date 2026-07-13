@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CartWidget</class>
+ <widget class="QWidget" name="CartWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>467</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>29</x>
+     <y>10</y>
+     <width>258</width>
+     <height>272</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QLabel" name="titleLabel">
+      <property name="text">
+       <string>购物车</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QListWidget" name="cartListWidget"/>
+    </item>
+    <item>
+     <widget class="QLabel" name="totalLabel">
+      <property name="text">
+       <string>合计：￥0.00</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="removeButton">
+        <property name="text">
+         <string>删除选中</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="clearButton">
+        <property name="text">
+         <string>清空购物车</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QPushButton" name="submitButton">
+      <property name="text">
+       <string>提交订单</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="detailButton">
+      <property name="text">
+       <string>查看订单</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="checkoutButton">
+      <property name="text">
+       <string>去结账</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

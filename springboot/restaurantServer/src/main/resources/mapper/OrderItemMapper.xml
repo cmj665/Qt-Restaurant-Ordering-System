@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.OrderItemMapper">
+
+
+    <select id="findByOrderId"
+            resultType="org.csu.restaurant.restaurantserver.dto.OrderItemDTO">
+
+
+        SELECT
+
+        oi.dish_id AS dishId,
+
+        d.name AS dishName,
+
+        oi.count,
+
+        oi.price
+
+
+        FROM order_item oi
+
+
+        LEFT JOIN dish d
+
+        ON oi.dish_id=d.id
+
+
+        WHERE oi.order_id=#{orderId}
+
+
+    </select>
+
+
+</mapper>
