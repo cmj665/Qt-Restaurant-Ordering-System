@@ -2,6 +2,7 @@ package org.csu.restaurant.restaurantserver.controller;
 
 import org.csu.restaurant.restaurantserver.entity.Dish;
 import org.csu.restaurant.restaurantserver.entity.DishCategory;
+import org.csu.restaurant.restaurantserver.dto.StockAdjustmentDTO;
 import org.csu.restaurant.restaurantserver.service.DishService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,11 @@ public class DishController {
     public List<Dish> list(){
 
         return dishService.findAll();
+    }
+
+    @GetMapping("/admin/list")
+    public List<Dish> adminList(){
+        return dishService.findAllForAdmin();
     }
 
     @GetMapping("/categories")
@@ -54,5 +60,28 @@ public class DishController {
 
         return result > 0 ? "删除成功" : "删除失败";
     }
+
+    @PostMapping("/restore/{id}")
+    public String restore(@PathVariable Integer id) {
+        dishService.restoreDish(id);
+        return "上架成功";
+    }
+
+    @PostMapping("/stock")
+    public String adjustStock(@RequestBody StockAdjustmentDTO request) {
+        dishService.adjustStock(request.getDishId(), request.getStock());
+        return "库存调整成功";
+    }
+
+    //库存预警
+    @GetMapping("/lowStock")
+    public List<Dish> lowStock(){
+
+        return dishService.findLowStock();
+
+    }
+
+
+
 
 }

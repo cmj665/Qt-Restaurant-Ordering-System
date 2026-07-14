@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.csu.restaurant.restaurantserver.mapper.RewardMapper">
+    <select id="findAll" resultType="org.csu.restaurant.restaurantserver.entity.Reward">
+        SELECT id,name,probability FROM reward WHERE probability>0 ORDER BY id
+    </select>
+    <select id="lockUnpaidOrder" resultType="org.csu.restaurant.restaurantserver.entity.Order">
+        SELECT id,table_id AS tableId,total_price AS totalPrice,pay_status AS payStatus
+        FROM orders WHERE id=#{orderId} FOR UPDATE
+    </select>
+    <select id="countDraws" resultType="int">
+        SELECT COUNT(*) FROM order_reward WHERE order_id=#{orderId}
+    </select>
+    <insert id="insertOrderReward">
+        INSERT INTO order_reward(order_id,reward_id) VALUES(#{orderId},#{rewardId})
+    </insert>
+</mapper>

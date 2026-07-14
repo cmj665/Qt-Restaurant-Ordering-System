@@ -7,6 +7,7 @@ import org.csu.restaurant.restaurantserver.entity.Payment;
 import org.csu.restaurant.restaurantserver.mapper.OrderMapper;
 import org.csu.restaurant.restaurantserver.mapper.PaymentMapper;
 import org.csu.restaurant.restaurantserver.mapper.TableMapper;
+import org.csu.restaurant.restaurantserver.mapper.OrderItemMapper;
 import org.csu.restaurant.restaurantserver.service.PaymentService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,9 @@ public class PaymentServiceImpl implements PaymentService{
 
     @Autowired
     private TableMapper tableMapper;
+
+    @Autowired
+    private OrderItemMapper orderItemMapper;
 
     @Override
     @Transactional
@@ -58,13 +62,16 @@ public class PaymentServiceImpl implements PaymentService{
 
         //3、保存支付记录
 
+        if(orderItemMapper.countPendingByOrderId(order.getId()) > 0){
+            throw new IllegalStateException("还有菜品未出餐，暂时不能支付");
+        }
+
         // Atomically claim the unpaid order. The earlier read is not enough because
         // concurrent requests can both observe payStatus == 0.
         int result = orderMapper.updatePayStatus(order.getId());
         if(result == 0){
             throw new IllegalStateException("订单已经支付，请勿重复支付");
         }
-
         Payment payment = new Payment();
         payment.setOrderId(order.getId());
         payment.setPayType(paymentDTO.getPayType());

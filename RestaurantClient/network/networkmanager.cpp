@@ -455,6 +455,24 @@ void NetworkManager::getOrderDetail(int tableId){
 
 }
 
+void NetworkManager::getOrderReceipt(int orderId){
+    QNetworkReply *reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/order/receipt/%1").arg(orderId))));
+    connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QString message=reply->errorString();QJsonObject error=QJsonDocument::fromJson(data).object();if(error.contains("message"))message=error["message"].toString();emit orderReceiptReceived(false,QJsonObject(),message);}else emit orderReceiptReceived(true,QJsonDocument::fromJson(data).object(),QString());reply->deleteLater();});
+}
+
+void NetworkManager::getRewardChances(int tableId){
+    QNetworkReply*reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/reward/chances/table/%1").arg(tableId))));
+    connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QJsonObject e=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(false,0,0,e["message"].toString(reply->errorString()));}else{QJsonObject o=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(true,o["orderId"].toInt(),o["chances"].toInt(),QString());}reply->deleteLater();});
+}
+void NetworkManager::getRewardChancesByOrder(int orderId){
+    QNetworkReply*reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/reward/chances/order/%1").arg(orderId))));
+    connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QJsonObject e=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(false,0,0,e["message"].toString(reply->errorString()));}else{QJsonObject o=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(true,o["orderId"].toInt(),o["chances"].toInt(),QString());}reply->deleteLater();});
+}
+void NetworkManager::drawReward(int orderId){
+    QNetworkRequest request{QUrl(QString("http://localhost:8080/reward/draw/%1").arg(orderId))};QNetworkReply*reply=manager->post(request,QByteArray());
+    connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();QJsonObject o=QJsonDocument::fromJson(data).object();if(reply->error()!=QNetworkReply::NoError)emit rewardDrawFinished(false,QString(),0,o["message"].toString(reply->errorString()));else emit rewardDrawFinished(true,o["rewardName"].toString(),o["remainingChances"].toInt(),QString());reply->deleteLater();});
+}
+
 
 void NetworkManager::checkOrderCanPay(int orderId)
 {

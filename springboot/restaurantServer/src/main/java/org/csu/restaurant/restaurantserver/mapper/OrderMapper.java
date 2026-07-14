@@ -25,8 +25,10 @@ public interface OrderMapper {
     Order findUnpaid(Integer tableId);
 
     int addTotalPrice(@Param("id") Integer id, @Param("amount") java.math.BigDecimal amount);
+    int subtractTotalPrice(@Param("id") Integer id,@Param("amount") java.math.BigDecimal amount);
 
     //找到订单详情
     OrderDetailDTO findDetailByTableId(Integer tableId);
+    OrderDetailDTO findDetailByOrderId(Integer orderId);
 
 }

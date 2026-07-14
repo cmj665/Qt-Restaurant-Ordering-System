@@ -22,6 +22,7 @@ qt_add_executable(RestaurantClient
     model/DiningTable.h
     widget/paywidget.h widget/paywidget.cpp widget/paywidget.ui
     widget/orderdetailwidget.h widget/orderdetailwidget.cpp widget/orderdetailwidget.ui
+    widget/blindboxdialog.h widget/blindboxdialog.cpp
 
 
 

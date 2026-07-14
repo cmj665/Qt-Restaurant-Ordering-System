@@ -8,6 +8,7 @@ import java.util.List;
 public interface DishService {
 
     List<Dish> findAll();
+    List<Dish> findAllForAdmin();
 
     List<DishCategory> findCategories();
 
@@ -16,5 +17,8 @@ public interface DishService {
     int updateDish(Dish dish);
 
     int deleteDish(Integer id);
+    void restoreDish(Integer id);
 
+    List<Dish> findLowStock();
+    void adjustStock(Integer dishId, Integer stock);
 }

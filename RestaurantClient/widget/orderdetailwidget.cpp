@@ -6,12 +6,15 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QTimer>
+#include <QColor>
 
 OrderDetailWidget::OrderDetailWidget(int tableId, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::OrderDetailWidget)
     , currentTableId(tableId)
     , network(new NetworkManager(this))
+    , refreshTimer(new QTimer(this))
 {
     ui->setupUi(this);
     setWindowTitle("订单详情");
@@ -47,6 +50,9 @@ OrderDetailWidget::OrderDetailWidget(int tableId, QWidget *parent)
         emit payRequested(currentOrderId, currentMoney);
     });
     connect(ui->closeButton, &QPushButton::clicked, this, &QWidget::close);
+    refreshTimer->setInterval(2000);
+    connect(refreshTimer,&QTimer::timeout,this,[this](){network->getOrderDetail(currentTableId);});
+    refreshTimer->start();
     refresh();
 }
 
@@ -82,23 +88,28 @@ void OrderDetailWidget::showDetail(bool success, QJsonObject data)
 
     const QJsonArray items = data["items"].toArray();
     int index = 1;
+    int pendingCount = 0;
     for(const QJsonValue &value : items)
     {
         const QJsonObject item = value.toObject();
         const int count = item["count"].toInt();
         const double price = item["price"].toDouble();
+        const int itemStatus = item["itemStatus"].toInt();
+        if(itemStatus == 0) ++pendingCount;
+        const QString state = itemStatus == 0 ? "未出餐" : itemStatus == 1 ? "已出餐" : "已取消";
         QListWidgetItem *row = new QListWidgetItem(
-            QString("%1. %2\n    ￥%3 × %4    小计 ￥%5")
-                .arg(index++).arg(item["dishName"].toString())
-                .arg(price, 0, 'f', 2).arg(count).arg(price * count, 0, 'f', 2)
+            QString("%1. %2  【%3】\n    ￥%4 × %5    小计 ￥%6")
+                .arg(index++).arg(item["dishName"].toString()).arg(state)
+                .arg(price, 0, 'f', 2).arg(count).arg(itemStatus==2?0:price*count, 0, 'f', 2)
         );
+        row->setForeground(QColor(itemStatus==0?"#e67e22":itemStatus==1?"#27ae60":"#95a5a6"));
         row->setSizeHint(QSize(0, 64));
         ui->orderList->addItem(row);
     }
 
     ui->totalLabel->setText(QString("订单合计：￥%1").arg(currentMoney, 0, 'f', 2));
-    ui->payButton->setText(currentPayStatus == 1 ? "订单已支付" : "进入支付");
-    ui->payButton->setEnabled(currentPayStatus != 1);
+    ui->payButton->setText(currentPayStatus == 1 ? "订单已支付" : pendingCount>0 ? QString("等待出餐（%1项）").arg(pendingCount) : "进入支付");
+    ui->payButton->setEnabled(currentPayStatus != 1 && pendingCount == 0);
 }
 
 OrderDetailWidget::~OrderDetailWidget()

@@ -49,6 +49,7 @@
         dish_id,
         count,
         price
+        ,item_status
         )
 
         VALUES
@@ -57,6 +58,7 @@
         #{dishId},
         #{count},
         #{price}
+        ,#{itemStatus}
         )
 
     </insert>
@@ -114,11 +116,26 @@
 
     </select>
 
+    <select id="findDetailByOrderId"
+            resultType="org.csu.restaurant.restaurantserver.dto.OrderDetailDTO">
+        SELECT o.id AS orderId, o.table_id AS tableId,
+               o.total_price AS totalPrice, o.pay_status AS payStatus,
+               o.create_time AS createTime, o.finish_time AS finishTime
+        FROM orders o
+        WHERE o.id=#{orderId}
+    </select>
+
     <update id="addTotalPrice">
         UPDATE orders
         SET total_price = total_price + #{amount}
         WHERE id=#{id}
           AND pay_status=0
+    </update>
+
+    <update id="subtractTotalPrice">
+        UPDATE orders
+        SET total_price = GREATEST(0, total_price - #{amount})
+        WHERE id=#{id} AND pay_status=0
     </update>
 
 

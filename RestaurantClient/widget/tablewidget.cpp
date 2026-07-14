@@ -63,13 +63,6 @@ TableWidget::TableWidget(QWidget *parent)
 
     connect(refreshButton, &QPushButton::clicked, this, &TableWidget::refreshTables);
     connect(network, &NetworkManager::tableListReceived, this, &TableWidget::showTables);
-    connect(network, &NetworkManager::tableCleaned, this,
-            [this](bool success, const QString &message){
-        if(!success)
-            QMessageBox::warning(this, "清台失败", message);
-        refreshTables();
-    });
-
     refreshTimer->setInterval(2000);
     connect(refreshTimer, &QTimer::timeout, this, &TableWidget::refreshTables);
     refreshTimer->start();
@@ -154,10 +147,9 @@ void TableWidget::updateTableItem(const DiningTable &table)
     connect(button, &QPushButton::clicked, this, [this, table](){
         if(table.status == 3)
         {
-            if(QMessageBox::question(this, "确认清台",
-                QString("%1已完成结账，是否清台并恢复为空闲？").arg(table.tableName),
-                QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-                network->cleanTable(table.id);
+            QMessageBox::information(this, "等待清理",
+                QString("%1已完成结账，正在等待管理员清理。\n清理完成后桌台会自动恢复为空闲状态。")
+                    .arg(table.tableName));
             return;
         }
         emit tableSelected(table.id);

@@ -3,6 +3,7 @@
 #include "dishcard.h"
 #include "paywidget.h"
 #include "orderdetailwidget.h"
+#include "blindboxdialog.h"
 
 #include <QMessageBox>
 #include <QDateTime>
@@ -10,6 +11,12 @@
 #include <QPrinter>
 #include <QPrinterInfo>
 #include <QTextDocument>
+#include <QPdfWriter>
+#include <QPageSize>
+#include <QPageLayout>
+#include <QDir>
+#include <QFileInfo>
+#include <QJsonArray>
 #include <algorithm>
 #include <QSet>
 #include <QGraphicsDropShadowEffect>
@@ -206,6 +213,21 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
     //--------------网络对象----------------
     network =new NetworkManager(this);
+
+    connect(network,&NetworkManager::orderReceiptReceived,this,[this](bool success,const QJsonObject &receipt,const QString &message){
+        if(!success){QMessageBox::warning(this,"小票生成失败",message);return;}
+        createPdfAndPrintReceipt(receipt,pendingReceiptPayType);
+        network->getRewardChancesByOrder(receipt["orderId"].toInt());
+    });
+    connect(network,&NetworkManager::rewardChancesReceived,this,[this](bool success,int orderId,int chances,const QString &message){
+        if(!success){QMessageBox::warning(this,"盲盒查询失败",message);return;}
+        rewardOrderId=orderId;rewardChances=chances;if(chances>0)offerRewardDraw();
+    });
+    connect(network,&NetworkManager::rewardDrawFinished,this,[this](bool success,const QString &name,int remaining,const QString &message){
+        if(!success){if(activeBlindBox)activeBlindBox->showError(message);else QMessageBox::warning(this,"抽奖失败",message);return;}
+        rewardChances=remaining;
+        if(activeBlindBox)activeBlindBox->showReward(name,remaining);
+    });
 
     connect(cartWidget,&CartWidget::submitOrderRequested,
             this,
@@ -692,8 +714,9 @@ void DishWidget::openPaymentWindow()
             activeDetailWidget->refresh();
         network->getDishList();
         QMessageBox::information(this, "成功", "订单支付完成");
-        if(QMessageBox::question(this, "打印小票", "是否现在打印结账小票？") == QMessageBox::Yes)
-            printReceipt(paidOrderId, paidMoney, payType);
+        Q_UNUSED(paidMoney);
+        pendingReceiptPayType=payType;
+        network->getOrderReceipt(paidOrderId);
     });
 
     connect(activePayWidget.data(), &QObject::destroyed, this, [this](){
@@ -706,39 +729,71 @@ void DishWidget::openPaymentWindow()
     activePayWidget->activateWindow();
 }
 
-void DishWidget::printReceipt(int orderId, double money, int payType)
+void DishWidget::createPdfAndPrintReceipt(const QJsonObject &data, int payType)
 {
-    if(QPrinterInfo::availablePrinters().isEmpty())
-    {
-        QMessageBox::information(this, "没有打印机", "系统中没有可用打印机，请先安装或配置打印机。");
+    const int orderId=data["orderId"].toInt();
+    const int tableId=data["tableId"].toInt();
+    const double money=data["totalPrice"].toDouble();
+    const QString channel=payType==1?"微信支付（模拟）":"支付宝（模拟）";
+    const QString createTime=data["createTime"].toString().replace('T',' ');
+    const QString finishTime=data["finishTime"].toString().replace('T',' ');
+    QString rows;
+    int number=1;
+    for(const QJsonValue &value:data["items"].toArray()){
+        const QJsonObject item=value.toObject();
+        const int status=item["itemStatus"].toInt();
+        const QString state=status==1?"已出餐":status==2?"已取消":"未出餐";
+        const double subtotal=status==2?0:item["price"].toDouble()*item["count"].toInt();
+        rows+=QString("<tr><td>%1</td><td>%2</td><td>%3</td><td>￥%4</td><td>￥%5</td><td>%6</td></tr>")
+            .arg(number++).arg(item["dishName"].toString().toHtmlEscaped())
+            .arg(item["count"].toInt()).arg(item["price"].toDouble(),0,'f',2)
+            .arg(subtotal,0,'f',2).arg(state);
+    }
+    QTextDocument document;
+    document.setHtml(QString("<html><body style='font-family:Microsoft YaHei;color:#222;'>"
+        "<h1 style='text-align:center;'>餐厅结账小票</h1><hr>"
+        "<table width='100%' cellspacing='6'><tr><td>桌台：%1号桌</td><td>订单号：%2</td></tr>"
+        "<tr><td>创建时间：%3</td><td>结束时间：%4</td></tr><tr><td colspan='2'>支付方式：%5</td></tr></table><br>"
+        "<table width='100%' border='1' cellspacing='0' cellpadding='6' style='border-collapse:collapse;'>"
+        "<tr style='background:#eeeeee;'><th>序号</th><th>菜品</th><th>数量</th><th>单价</th><th>小计</th><th>状态</th></tr>%6</table>"
+        "<h2 style='text-align:right;'>实付金额：￥%7</h2><hr><p style='text-align:center;'>谢谢惠顾，欢迎再次光临！</p>"
+        "</body></html>").arg(tableId).arg(orderId).arg(createTime,finishTime,channel,rows).arg(money,0,'f',2));
+
+    const QString directory=QStringLiteral("D:/shixun/pdfxiaopiao");
+    QDir().mkpath(directory);
+    const QString pdfPath=directory+QString("/订单_%1_小票.pdf").arg(orderId);
+    QPdfWriter writer(pdfPath);
+    writer.setTitle(QString("订单%1结账小票").arg(orderId));
+    writer.setCreator("RestaurantClient");
+    writer.setPageSize(QPageSize(QPageSize::A5));
+    writer.setPageMargins(QMarginsF(12,12,12,12),QPageLayout::Millimeter);
+    document.print(&writer);
+    if(!QFileInfo::exists(pdfPath)){
+        QMessageBox::warning(this,"PDF生成失败","无法保存小票PDF");
         return;
     }
-
+    if(QMessageBox::question(this,"PDF小票已生成",QString("小票已保存到：\n%1\n\n是否立即打印？").arg(QDir::toNativeSeparators(pdfPath)))!=QMessageBox::Yes)
+        return;
+    if(QPrinterInfo::availablePrinters().isEmpty()){
+        QMessageBox::information(this,"没有打印机","PDF已保存，但系统中没有可用打印机。");
+        return;
+    }
     QPrinter printer(QPrinter::HighResolution);
     printer.setDocName(QString("订单%1结账小票").arg(orderId));
-    QPrintDialog dialog(&printer, this);
-    dialog.setWindowTitle("打印结账小票");
-    if(dialog.exec() != QDialog::Accepted)
-        return;
+    QPrintDialog dialog(&printer,this);
+    dialog.setWindowTitle("打印PDF小票");
+    if(dialog.exec()==QDialog::Accepted)
+        document.print(&printer);
+}
 
-    const QString channel = payType == 1 ? "微信支付（模拟）" : "支付宝（模拟）";
-    QTextDocument receipt;
-    receipt.setHtml(QString(
-        "<div style='font-family:Microsoft YaHei;text-align:center;'>"
-        "<h2>餐厅结账小票</h2><hr>"
-        "<table width='100%' style='font-size:14px;text-align:left;'>"
-        "<tr><td>桌台</td><td align='right'>%1号桌</td></tr>"
-        "<tr><td>订单号</td><td align='right'>%2</td></tr>"
-        "<tr><td>支付方式</td><td align='right'>%3</td></tr>"
-        "<tr><td>支付时间</td><td align='right'>%4</td></tr>"
-        "</table><hr>"
-        "<h2 style='text-align:right;'>实付：￥%5</h2>"
-        "<p>谢谢惠顾，欢迎再次光临！</p>"
-        "</div>"
-    ).arg(currentTableId).arg(orderId).arg(channel)
-     .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"))
-     .arg(money, 0, 'f', 2));
-    receipt.print(&printer);
+void DishWidget::offerRewardDraw()
+{
+    if(rewardOrderId<=0||rewardChances<=0)return;
+    if(activeBlindBox){activeBlindBox->show();activeBlindBox->raise();return;}
+    activeBlindBox=new BlindBoxDialog(rewardChances,[this](){network->drawReward(rewardOrderId);},this);
+    activeBlindBox->setAttribute(Qt::WA_DeleteOnClose);activeBlindBox->setWindowFlag(Qt::Window);
+    connect(activeBlindBox,&QObject::destroyed,this,[this](){activeBlindBox=nullptr;});
+    activeBlindBox->show();activeBlindBox->raise();activeBlindBox->activateWindow();
 }
 
 //实现刷新标题

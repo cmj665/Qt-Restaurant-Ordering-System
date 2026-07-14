@@ -14,11 +14,13 @@
 #include <QPointer>
 #include <QHBoxLayout>
 #include <QPropertyAnimation>
+#include <QJsonObject>
 
 class QResizeEvent;
 
 class PayWidget;
 class OrderDetailWidget;
+class BlindBoxDialog;
 
 namespace Ui {
 class DishWidget;
@@ -78,11 +80,16 @@ private:
     QPointer<OrderDetailWidget> activeDetailWidget;
 
     void openPaymentWindow();
-    void printReceipt(int orderId, double money, int payType);
+    void createPdfAndPrintReceipt(const QJsonObject &receipt, int payType);
     void renderDishes();
     void openCartDrawer();
     void closeCartDrawer();
     QRect cartDrawerGeometry(bool opened) const;
+    int pendingReceiptPayType = 0;
+    int rewardOrderId = 0;
+    int rewardChances = 0;
+    void offerRewardDraw();
+    QPointer<BlindBoxDialog> activeBlindBox;
 
 
 };

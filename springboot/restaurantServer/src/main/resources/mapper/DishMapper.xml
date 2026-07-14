@@ -32,11 +32,27 @@
             SELECT oi.dish_id, SUM(oi.count) AS soldCount
             FROM order_item oi
             JOIN orders o ON o.id = oi.order_id
-            WHERE o.pay_status = 1
+            WHERE o.pay_status = 1 AND oi.item_status = 1
             GROUP BY oi.dish_id
         ) s ON s.dish_id = d.id
         WHERE d.is_deleted = 0
 
+    </select>
+
+    <select id="findAllForAdmin"
+            resultType="org.csu.restaurant.restaurantserver.entity.Dish">
+        SELECT d.id, d.cat_id AS catId, d.name, d.price, d.stock,
+               d.picture, d.description, d.is_deleted AS isDeleted,
+               COALESCE(s.soldCount, 0) AS soldCount
+        FROM dish d
+        LEFT JOIN (
+            SELECT oi.dish_id, SUM(oi.count) AS soldCount
+            FROM order_item oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE o.pay_status = 1 AND oi.item_status = 1
+            GROUP BY oi.dish_id
+        ) s ON s.dish_id = d.id
+        ORDER BY d.is_deleted, d.id
     </select>
 
     <!--新增菜品-->
@@ -83,6 +99,7 @@
             description=#{description}
 
         WHERE id=#{id}
+          AND is_deleted=0
 
     </update>
 
@@ -95,7 +112,13 @@
         SET is_deleted=1
 
         WHERE id=#{id}
+          AND is_deleted=0
 
+    </update>
+
+    <update id="restoreDish">
+        UPDATE dish SET is_deleted=0
+        WHERE id=#{id} AND is_deleted=1
     </update>
 
     <!-- 根据菜名找Id -->
@@ -125,8 +148,51 @@
 
         WHERE id=#{id}
         AND stock >= #{count}
+        AND is_deleted=0
 
     </update>
+
+    <update id="updateStock">
+        UPDATE dish SET stock=#{stock}
+        WHERE id=#{id} AND is_deleted=0
+    </update>
+
+    <update id="addStock">
+        UPDATE dish SET stock=stock+#{count}
+        WHERE id=#{id}
+    </update>
+
+
+    <select id="findLowStock"
+            resultType="org.csu.restaurant.restaurantserver.entity.Dish">
+
+
+        SELECT
+
+        id,
+
+        cat_id AS catId,
+
+        name,
+
+        price,
+
+        stock,
+
+        picture,
+
+        description,
+
+        is_deleted AS isDeleted
+
+        FROM dish
+
+        WHERE is_deleted=0
+
+        AND stock &lt; 10
+
+
+    </select>
 
 
 

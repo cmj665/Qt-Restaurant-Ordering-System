@@ -92,6 +92,9 @@ public class OrderQueueService {
             if(order == null) {
                 throw new IllegalStateException("当前桌台没有未支付订单");
             }
+            if(!orderService.canCheckout(order.getId())) {
+                throw new IllegalStateException("还有菜品未出餐，请等待管理员出餐或取消后再结账");
+            }
             if(table.getStatus() == 2) {
                 return order;
             }

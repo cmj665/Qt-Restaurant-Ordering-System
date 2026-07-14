@@ -29,6 +29,7 @@ private:
     int currentOrderId = 0;
     double currentMoney = 0;
     int currentPayStatus = 0;
+    class QTimer *refreshTimer;
 };
 
 #endif // ORDERDETAILWIDGET_H

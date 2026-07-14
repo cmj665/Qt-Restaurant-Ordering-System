@@ -12,5 +12,6 @@ public class OrderItem {
     private Integer dishId;
     private Integer count;
     private BigDecimal price;
+    private Integer itemStatus;
 
 }

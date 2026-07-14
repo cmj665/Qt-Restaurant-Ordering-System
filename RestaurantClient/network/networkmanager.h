@@ -36,6 +36,10 @@ public:
     void pay(int orderId,int payType);
 
     void getOrderDetail(int tableId);
+    void getOrderReceipt(int orderId);
+    void getRewardChances(int tableId);
+    void getRewardChancesByOrder(int orderId);
+    void drawReward(int orderId);
 
     void checkOrderCanPay(int orderId);
 
@@ -48,6 +52,9 @@ signals:
     void checkoutReady(bool success, int orderId, double money, QString message);
     void payFinished(bool success,QString message);
     void orderDetailReceived(bool success,QJsonObject data);
+    void orderReceiptReceived(bool success,QJsonObject data,QString message);
+    void rewardChancesReceived(bool success,int orderId,int chances,QString message);
+    void rewardDrawFinished(bool success,QString rewardName,int remainingChances,QString message);
 
     //桌台状态修改完成
     void tableStatusUpdated(bool success);

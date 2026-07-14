@@ -14,6 +14,8 @@
 
         SELECT
 
+        oi.id,
+        oi.order_id AS orderId,
         oi.dish_id AS dishId,
 
         d.name AS dishName,
@@ -22,7 +24,8 @@
 
         oi.price,
 
-        d.picture
+        d.picture,
+        oi.item_status AS itemStatus
 
 
         FROM order_item oi
@@ -36,6 +39,39 @@
         WHERE oi.order_id=#{orderId}
 
 
+    </select>
+
+    <select id="findPendingOrderItems" resultType="org.csu.restaurant.restaurantserver.dto.OrderItemDTO">
+        SELECT oi.id, oi.order_id AS orderId, o.table_id AS tableId,
+               dt.table_name AS tableName, oi.dish_id AS dishId,
+               d.name AS dishName, oi.count, oi.price,
+               d.picture, oi.item_status AS itemStatus
+        FROM order_item oi
+        JOIN orders o ON o.id=oi.order_id
+        JOIN dining_table dt ON dt.id=o.table_id
+        LEFT JOIN dish d ON d.id=oi.dish_id
+        WHERE o.pay_status=0
+        ORDER BY oi.item_status, o.create_time, oi.id
+    </select>
+
+    <select id="findById" resultType="org.csu.restaurant.restaurantserver.dto.OrderItemDTO">
+        SELECT id, order_id AS orderId, dish_id AS dishId, count, price,
+               item_status AS itemStatus
+        FROM order_item WHERE id=#{id}
+    </select>
+
+    <update id="updateStatusIfPending">
+        UPDATE order_item SET item_status=#{status}
+        WHERE id=#{id} AND item_status=0
+          AND EXISTS (
+              SELECT 1 FROM orders o
+              WHERE o.id=order_item.order_id AND o.pay_status=0
+          )
+    </update>
+
+    <select id="countPendingByOrderId" resultType="int">
+        SELECT COUNT(*) FROM order_item
+        WHERE order_id=#{orderId} AND item_status=0
     </select>
 
 

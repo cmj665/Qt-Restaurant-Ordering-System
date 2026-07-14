@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import org.csu.restaurant.restaurantserver.dto.OrderItemDTO;
 
 @RestController
 @RequestMapping("/order")
@@ -53,6 +55,20 @@ public class OrderController {
 
     }
 
+    @GetMapping("/receipt/{orderId}")
+    public OrderDetailDTO receipt(@PathVariable Integer orderId){
+        return orderService.findDetailByOrderId(orderId);
+    }
+
+    @GetMapping("/admin/items")
+    public List<OrderItemDTO> adminItems(){ return orderService.findPendingOrderItems(); }
+
+    @PostMapping("/item/{itemId}/status/{status}")
+    public String updateItemStatus(@PathVariable Integer itemId,@PathVariable Integer status){
+        orderService.updateItemStatus(itemId,status);
+        return status==1?"出餐成功":"取消成功";
+    }
+
     @GetMapping("/canPay/{id}")
     public Map<String,Object> canPay(
             @PathVariable Integer id
@@ -76,6 +92,11 @@ public class OrderController {
         {
             map.put("canPay",false);
             map.put("message","订单已经支付");
+        }
+        else if(!orderService.canCheckout(id))
+        {
+            map.put("canPay",false);
+            map.put("message","还有菜品未出餐，请等待全部菜品处理完成");
         }
         else
         {

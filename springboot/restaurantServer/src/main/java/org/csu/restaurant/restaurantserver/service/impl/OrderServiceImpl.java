@@ -120,6 +120,7 @@ public class OrderServiceImpl implements OrderService{
             item.setCount(dto.getCount());
 
             item.setPrice(dish.getPrice());
+            item.setItemStatus(0);
 
             orderMapper.insertItem(item);
 
@@ -163,6 +164,37 @@ public class OrderServiceImpl implements OrderService{
 
         return orderMapper.findById(id);
 
+    }
+
+    @Override
+    public OrderDetailDTO findDetailByOrderId(Integer orderId){
+        OrderDetailDTO order=orderMapper.findDetailByOrderId(orderId);
+        if(order==null) throw new IllegalArgumentException("订单不存在");
+        order.setItems(orderItemMapper.findByOrderId(orderId));
+        return order;
+    }
+
+    @Override
+    public List<OrderItemDTO> findPendingOrderItems(){ return orderItemMapper.findPendingOrderItems(); }
+
+    @Override
+    public boolean canCheckout(Integer orderId){ return orderItemMapper.countPendingByOrderId(orderId)==0; }
+
+    @Override
+    @Transactional
+    public void updateItemStatus(Integer itemId,Integer status){
+        if(itemId==null || (status!=1 && status!=2)) throw new IllegalArgumentException("菜品状态参数无效");
+        OrderItemDTO item=orderItemMapper.findById(itemId);
+        if(item==null) throw new IllegalArgumentException("订单菜品不存在");
+        Order order=orderMapper.findById(item.getOrderId());
+        if(order==null || order.getPayStatus()!=0) throw new IllegalStateException("订单已结账，不能修改出餐状态");
+        if(item.getItemStatus()!=0) throw new IllegalStateException("该菜品已处理，请刷新后重试");
+        if(orderItemMapper.updateStatusIfPending(itemId,status)==0) throw new IllegalStateException("菜品状态已变化，请刷新后重试");
+        if(status==2){
+            BigDecimal amount=item.getPrice().multiply(BigDecimal.valueOf(item.getCount()));
+            if(orderMapper.subtractTotalPrice(item.getOrderId(),amount)==0) throw new IllegalStateException("取消菜品失败");
+            if(dishMapper.addStock(item.getDishId(),item.getCount())==0) throw new IllegalStateException("退回菜品库存失败");
+        }
     }
 
 }
