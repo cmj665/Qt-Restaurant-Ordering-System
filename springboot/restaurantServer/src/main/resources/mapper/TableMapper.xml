@@ -14,26 +14,28 @@
 
         SELECT
         id,
-        table_name,
+        table_name AS tableName,
         capacity,
         status
 
         FROM dining_table
+        ORDER BY id
 
     </select>
 
 
-    <!-- 修改状态 -->
-    <update id="updateStatus">
-
-
+    <update id="updateStatusIfCurrent">
         UPDATE dining_table
-
         SET status=#{status}
-
         WHERE id=#{id}
+          AND status=#{currentStatus}
+    </update>
 
-
+    <update id="markDining">
+        UPDATE dining_table
+        SET status=1
+        WHERE id=#{id}
+          AND status IN (0, 1)
     </update>
 
     <select id="findById"

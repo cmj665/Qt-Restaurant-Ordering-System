@@ -22,14 +22,40 @@ public class TableServiceImpl implements TableService{
     }
 
     @Override
-    public int updateStatus(Integer id,Integer status){
-        return tableMapper.updateStatus(id,status);
+    public void changeStatus(Integer id,Integer status){
+        if (id == null || status == null || status < 0 || status > 3) {
+            throw new IllegalArgumentException("桌台或状态参数无效");
+        }
+        DiningTable table = tableMapper.findById(id);
+        if (table == null) {
+            throw new IllegalArgumentException("桌台不存在");
+        }
+
+        int current = table.getStatus();
+        if (current == status) {
+            return;
+        }
+        boolean allowed = (current == 0 && status == 1)
+                || (current == 1 && status == 2)
+                || (current == 2 && status == 3)
+                || (current == 3 && status == 0);
+        if (!allowed || tableMapper.updateStatusIfCurrent(id, current, status) == 0) {
+            throw new IllegalStateException("桌台状态已变化，请刷新后重试");
+        }
     }
 
     @Override
-    public boolean clean(Integer id) {
-        int result = tableMapper.updateStatus(id,0);
-        return result>0;
+    public void clean(Integer id) {
+        DiningTable table = tableMapper.findById(id);
+        if (table == null) {
+            throw new IllegalArgumentException("桌台不存在");
+        }
+        if (table.getStatus() != 3) {
+            throw new IllegalStateException("只有已完成未清理的桌台可以清台");
+        }
+        if (tableMapper.updateStatusIfCurrent(id, 3, 0) == 0) {
+            throw new IllegalStateException("桌台状态已变化，请刷新后重试");
+        }
     }
 
 }

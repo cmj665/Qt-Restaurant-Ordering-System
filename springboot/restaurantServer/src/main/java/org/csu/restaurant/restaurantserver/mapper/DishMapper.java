@@ -4,12 +4,15 @@ import org.csu.restaurant.restaurantserver.entity.Dish;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import org.csu.restaurant.restaurantserver.entity.DishCategory;
 
 @Mapper
 public interface DishMapper {
 
     //查询全部菜品
     List<Dish> findAll();
+
+    List<DishCategory> findCategories();
 
     //新增菜品
     int addDish(Dish dish);

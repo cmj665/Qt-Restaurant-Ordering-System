@@ -10,4 +10,5 @@ public class OrderItemDTO {
     private Integer count;
     private String dishName;
     private BigDecimal price;
+    private String picture;
 }

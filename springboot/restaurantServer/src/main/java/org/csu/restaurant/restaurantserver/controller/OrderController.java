@@ -3,12 +3,15 @@ package org.csu.restaurant.restaurantserver.controller;
 
 import org.csu.restaurant.restaurantserver.dto.OrderDTO;
 import org.csu.restaurant.restaurantserver.dto.OrderDetailDTO;
+import org.csu.restaurant.restaurantserver.dto.OrderTaskDTO;
 import org.csu.restaurant.restaurantserver.entity.Order;
 import org.csu.restaurant.restaurantserver.service.OrderService;
+import org.csu.restaurant.restaurantserver.service.OrderQueueService;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,17 +23,22 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private OrderQueueService orderQueueService;
+
     @PostMapping("/submit")
-    public String submit(@RequestBody OrderDTO orderDTO){
+    public ResponseEntity<OrderTaskDTO> submit(@RequestBody OrderDTO orderDTO){
+        return ResponseEntity.accepted().body(orderQueueService.enqueue(orderDTO));
+    }
 
-        try{
-            boolean result = orderService.submit(orderDTO);
+    @GetMapping("/task/{taskId}")
+    public OrderTaskDTO task(@PathVariable String taskId){
+        return orderQueueService.getTask(taskId);
+    }
 
-            return "下单成功";
-        }catch (Exception e){
-            return e.getMessage();
-        }
-
+    @PostMapping("/checkout/{tableId}")
+    public Order checkout(@PathVariable Integer tableId){
+        return orderQueueService.checkout(tableId);
     }
 
     @GetMapping("/unpaid/{tableId}")

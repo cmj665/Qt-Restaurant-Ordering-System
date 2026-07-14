@@ -1,6 +1,7 @@
 package org.csu.restaurant.restaurantserver.service.impl;
 
 import org.csu.restaurant.restaurantserver.entity.Dish;
+import org.csu.restaurant.restaurantserver.entity.DishCategory;
 import org.csu.restaurant.restaurantserver.mapper.DishMapper;
 import org.csu.restaurant.restaurantserver.service.DishService;
 
@@ -18,6 +19,11 @@ public class DishServiceImpl implements DishService{
     @Override
     public List<Dish> findAll(){
         return dishMapper.findAll();
+    }
+
+    @Override
+    public List<DishCategory> findCategories(){
+        return dishMapper.findCategories();
     }
 
     @Override

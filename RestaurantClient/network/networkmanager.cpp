@@ -12,6 +12,7 @@
 #include <QJsonValue>
 #include <QJsonDocument>
 #include <QUrlQuery>
+#include <QTimer>
 
 #include "../model/CartItem.h"
 
@@ -63,6 +64,7 @@ void NetworkManager::getDishList(){
             dish.stock =object["stock"].toInt();
             dish.picture = object["picture"].toString();
             dish.description =object["description"].toString();
+            dish.soldCount = object["soldCount"].toInt();
             dishes.append(dish);
         }
         emit dishListReceived(dishes);
@@ -105,6 +107,13 @@ void NetworkManager::onFinished(QNetworkReply *reply){
 }
 
 void NetworkManager::submitOrder(int tableId,const QList<CartItem> &items){
+    if(orderSubmitting)
+    {
+        emit orderSubmitted(false, "订单正在后台处理中，请勿重复提交");
+        return;
+    }
+    orderSubmitting = true;
+
     QJsonObject rootObject;
     rootObject["tableId"] = tableId;
     QJsonArray itemArray;
@@ -131,18 +140,94 @@ void NetworkManager::submitOrder(int tableId,const QList<CartItem> &items){
             const QString message = QString::fromUtf8(responseData).isEmpty()
                                         ?reply->errorString():QString::fromUtf8(responseData);
             qDebug()<<"提交订单失败"<<message;
+            orderSubmitting = false;
             emit orderSubmitted(false,message);
 
             reply->deleteLater();
             return;
         }
-        const QString message =QString::fromUtf8(responseData);
-        qDebug()<<"提交订单成功，服务器返回："<<message;
-        emit orderSubmitted(true,message);
+        QJsonParseError parseError;
+        const QJsonDocument response = QJsonDocument::fromJson(responseData, &parseError);
+        const QString taskId = response.object()["taskId"].toString();
+        if(parseError.error != QJsonParseError::NoError || taskId.isEmpty())
+        {
+            orderSubmitting = false;
+            emit orderSubmitted(false, "服务器未返回订单任务编号");
+            reply->deleteLater();
+            return;
+        }
+
+        qDebug()<<"订单已进入后台队列，任务编号："<<taskId;
+        pollOrderTask(taskId);
         reply->deleteLater();
     });
 
 
+}
+
+void NetworkManager::getDishCategories()
+{
+    QNetworkReply *reply = manager->get(QNetworkRequest(QUrl("http://localhost:8080/dish/categories")));
+    connect(reply, &QNetworkReply::finished, this, [this, reply](){
+        QMap<int, QString> categories;
+        if(reply->error() == QNetworkReply::NoError)
+        {
+            const QJsonArray array = QJsonDocument::fromJson(reply->readAll()).array();
+            for(const QJsonValue &value : array)
+            {
+                const QJsonObject object = value.toObject();
+                categories.insert(object["id"].toInt(), object["name"].toString());
+            }
+        }
+        emit dishCategoriesReceived(categories);
+        reply->deleteLater();
+    });
+}
+
+void NetworkManager::pollOrderTask(const QString &taskId, int attempt)
+{
+    if(attempt >= 60)
+    {
+        orderSubmitting = false;
+        emit orderSubmitted(false, "订单处理超时，请稍后查看订单状态");
+        return;
+    }
+
+    QNetworkRequest request(QUrl(QString("http://localhost:8080/order/task/%1").arg(taskId)));
+    QNetworkReply *reply = manager->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, taskId, attempt](){
+        const QByteArray data = reply->readAll();
+        if(reply->error() != QNetworkReply::NoError)
+        {
+            reply->deleteLater();
+            QTimer::singleShot(500, this, [this, taskId, attempt](){
+                pollOrderTask(taskId, attempt + 1);
+            });
+            return;
+        }
+
+        const QJsonObject result = QJsonDocument::fromJson(data).object();
+        const QString status = result["status"].toString();
+        const QString message = result["message"].toString();
+        reply->deleteLater();
+
+        if(status == "SUCCESS")
+        {
+            orderSubmitting = false;
+            emit orderSubmitted(true, message);
+        }
+        else if(status == "FAILED")
+        {
+            orderSubmitting = false;
+            emit orderSubmitted(false, message);
+        }
+        else
+        {
+            QTimer::singleShot(500, this, [this, taskId, attempt](){
+                pollOrderTask(taskId, attempt + 1);
+            });
+        }
+    });
 }
 
 void NetworkManager::getTableList()
@@ -217,6 +302,28 @@ void NetworkManager::updateTableStatus(int id,int status){
 
 }
 
+void NetworkManager::cleanTable(int id)
+{
+    QNetworkRequest request(QUrl(QString("http://localhost:8080/table/clean/%1").arg(id)));
+    QNetworkReply *reply = manager->post(request, QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply](){
+        const QByteArray data = reply->readAll();
+        if(reply->error() != QNetworkReply::NoError)
+        {
+            QString message = reply->errorString();
+            const QJsonObject error = QJsonDocument::fromJson(data).object();
+            if(error.contains("message"))
+                message = error["message"].toString();
+            emit tableCleaned(false, message);
+        }
+        else
+        {
+            emit tableCleaned(true, QString::fromUtf8(data));
+        }
+        reply->deleteLater();
+    });
+}
+
 void NetworkManager::getUnpaidOrder(int tableId)
 {
     QUrl url = (QString("http://localhost:8080/order/unpaid/%1").arg(tableId));
@@ -253,6 +360,26 @@ void NetworkManager::getUnpaidOrder(int tableId)
 
     });
 
+}
+
+void NetworkManager::checkoutTable(int tableId)
+{
+    QNetworkRequest request(QUrl(QString("http://localhost:8080/order/checkout/%1").arg(tableId)));
+    QNetworkReply *reply = manager->post(request, QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply](){
+        const QByteArray data = reply->readAll();
+        const QJsonObject object = QJsonDocument::fromJson(data).object();
+        if(reply->error() != QNetworkReply::NoError)
+        {
+            const QString message = object["message"].toString(reply->errorString());
+            emit checkoutReady(false, 0, 0, message);
+        }
+        else
+        {
+            emit checkoutReady(true, object["id"].toInt(), object["totalPrice"].toDouble(), "可以结账");
+        }
+        reply->deleteLater();
+    });
 }
 
 void NetworkManager::pay(int orderId,int payType){

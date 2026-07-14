@@ -1,16 +1,17 @@
 #ifndef TABLEWIDGET_H
 #define TABLEWIDGET_H
 
-#include <QWidget>
-#include <QPushButton>
-#include "../network/networkmanager.h"
-#include <QGridLayout>
+#include <QGraphicsProxyWidget>
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QHash>
 #include <QLabel>
-#include <QHBoxLayout>
+#include <QPushButton>
+#include <QTimer>
+#include <QWidget>
+#include "../network/networkmanager.h"
 
-namespace Ui {
-class TableWidget;
-}
+namespace Ui { class TableWidget; }
 
 class TableWidget : public QWidget
 {
@@ -20,27 +21,32 @@ public:
     explicit TableWidget(QWidget *parent = nullptr);
     ~TableWidget();
 
-
-
 signals:
-    //发送选择的桌号
     void tableSelected(int tableId);
 
-private:
-    Ui::TableWidget *ui;
-    // void createTables();
-    NetworkManager *network;
-    QGridLayout *layout;
-    QWidget *legendWidget;
-
-private:
-    QLabel *createColorLabel(QString color, QString text);
-    //什么颜色表示什么桌台状态
-    void createLegend();
+protected:
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void showTables(QList<DiningTable> tables);
+    void refreshTables();
 
+private:
+    Ui::TableWidget *ui;
+    NetworkManager *network;
+    QGraphicsView *graphicsView;
+    QGraphicsScene *scene;
+    QHash<int, QGraphicsProxyWidget *> tableItems;
+    QHash<int, QPushButton *> tableButtons;
+    QWidget *legendWidget;
+    QPushButton *refreshButton;
+    QLabel *refreshStatusLabel;
+    QTimer *refreshTimer;
+
+    QLabel *createColorLabel(const QString &color, const QString &text);
+    void createLegend();
+    void updateTableItem(const DiningTable &table);
+    void arrangeTableItems();
 };
 
 #endif // TABLEWIDGET_H

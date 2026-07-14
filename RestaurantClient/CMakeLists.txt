@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(RestaurantClient LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools Network PrintSupport)
 
 qt_standard_project_setup()
 
@@ -38,6 +38,7 @@ target_link_libraries(RestaurantClient
         Qt::Core
         Qt::Widgets
         Qt::Network
+        Qt::PrintSupport
 )
 
 install(TARGETS RestaurantClient

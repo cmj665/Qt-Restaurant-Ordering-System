@@ -20,7 +20,9 @@
 
         oi.count,
 
-        oi.price
+        oi.price,
+
+        d.picture
 
 
         FROM order_item oi

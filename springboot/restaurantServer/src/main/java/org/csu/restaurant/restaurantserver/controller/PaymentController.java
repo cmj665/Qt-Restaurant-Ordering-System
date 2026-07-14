@@ -6,8 +6,6 @@ import org.csu.restaurant.restaurantserver.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.xml.transform.Result;
-
 @RestController
 @RequestMapping("/payment")
 public class PaymentController {

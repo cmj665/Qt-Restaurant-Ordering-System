@@ -1,6 +1,7 @@
 package org.csu.restaurant.restaurantserver.controller;
 
 import org.csu.restaurant.restaurantserver.entity.Dish;
+import org.csu.restaurant.restaurantserver.entity.DishCategory;
 import org.csu.restaurant.restaurantserver.service.DishService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,11 @@ public class DishController {
     public List<Dish> list(){
 
         return dishService.findAll();
+    }
+
+    @GetMapping("/categories")
+    public List<DishCategory> categories(){
+        return dishService.findCategories();
     }
 
     // 新增菜品

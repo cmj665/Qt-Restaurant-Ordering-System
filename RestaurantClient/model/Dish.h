@@ -13,6 +13,7 @@ public:
     int stock;
     QString picture;
     QString description;
+    int soldCount = 0;
 
 };
 

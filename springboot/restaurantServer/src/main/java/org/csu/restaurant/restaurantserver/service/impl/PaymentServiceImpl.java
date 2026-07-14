@@ -9,12 +9,9 @@ import org.csu.restaurant.restaurantserver.mapper.PaymentMapper;
 import org.csu.restaurant.restaurantserver.mapper.TableMapper;
 import org.csu.restaurant.restaurantserver.service.PaymentService;
 
-import org.csu.restaurant.restaurantserver.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 @Service
 public class PaymentServiceImpl implements PaymentService{
@@ -41,9 +38,15 @@ public class PaymentServiceImpl implements PaymentService{
         //订单已支付不能重复支付
         if(order.getPayStatus()==1){
 
-            throw new RuntimeException("订单已经支付");
+            throw new IllegalStateException("订单已经支付，请勿重复支付");
 
         }
+
+
+
+
+
+
         //必须占用了才能支付
         DiningTable table = tableMapper.findById(order.getTableId());
         if(table==null){
@@ -53,15 +56,14 @@ public class PaymentServiceImpl implements PaymentService{
             throw  new RuntimeException("当前桌台不是待结账状态");
         }
 
-
-
-
-
-        //2、修改订单状态
-
-        orderMapper.updatePayStatus(order.getId());
-
         //3、保存支付记录
+
+        // Atomically claim the unpaid order. The earlier read is not enough because
+        // concurrent requests can both observe payStatus == 0.
+        int result = orderMapper.updatePayStatus(order.getId());
+        if(result == 0){
+            throw new IllegalStateException("订单已经支付，请勿重复支付");
+        }
 
         Payment payment = new Payment();
         payment.setOrderId(order.getId());
@@ -70,12 +72,14 @@ public class PaymentServiceImpl implements PaymentService{
 //        //如果有status字段
 //        payment.setStatus(1);
 
-
-
         paymentMapper.insertPayment(payment);
 
+
+
         //4.桌台状态修改
-        tableMapper.updateStatus(order.getTableId(),3);
+        if(tableMapper.updateStatusIfCurrent(order.getTableId(), 2, 3) == 0){
+            throw new IllegalStateException("桌台状态已变化，请刷新后重试");
+        }
         return true;
     }
 

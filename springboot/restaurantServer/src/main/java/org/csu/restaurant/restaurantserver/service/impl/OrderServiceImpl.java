@@ -6,6 +6,7 @@ import org.csu.restaurant.restaurantserver.dto.OrderItemDTO;
 import org.csu.restaurant.restaurantserver.entity.Dish;
 import org.csu.restaurant.restaurantserver.entity.OrderItem;
 import org.csu.restaurant.restaurantserver.entity.Order;
+import org.csu.restaurant.restaurantserver.entity.DiningTable;
 import org.csu.restaurant.restaurantserver.mapper.DishMapper;
 import org.csu.restaurant.restaurantserver.mapper.OrderItemMapper;
 import org.csu.restaurant.restaurantserver.mapper.OrderMapper;
@@ -52,6 +53,14 @@ public class OrderServiceImpl implements OrderService{
 
         }
 
+        DiningTable table = tableMapper.findById(orderDTO.getTableId());
+        if(table == null){
+            throw new IllegalArgumentException("桌台不存在");
+        }
+        if(table.getStatus() != 0 && table.getStatus() != 1){
+            throw new IllegalStateException("桌台已进入结账流程，不能继续加菜");
+        }
+
         BigDecimal total=BigDecimal.ZERO;
 
 
@@ -79,14 +88,15 @@ public class OrderServiceImpl implements OrderService{
 
         //2、创建订单
 
-        Order order=new Order();
-
-        order.setTableId(orderDTO.getTableId());
-
-        order.setTotalPrice(total);
-
-        //插入订单
-        orderMapper.insertOrder(order);
+        Order order = orderMapper.findUnpaid(orderDTO.getTableId());
+        if(order == null){
+            order = new Order();
+            order.setTableId(orderDTO.getTableId());
+            order.setTotalPrice(total);
+            orderMapper.insertOrder(order);
+        }else if(orderMapper.addTotalPrice(order.getId(), total) == 0){
+            throw new IllegalStateException("订单状态已变化，请重新提交");
+        }
 
 
         //插入订单详情
@@ -116,7 +126,7 @@ public class OrderServiceImpl implements OrderService{
         }
 
         //订单成功后，修改桌台状态
-        int result=tableMapper.updateStatus(orderDTO.getTableId(),1);
+        int result=tableMapper.markDining(orderDTO.getTableId());
         if(result==0){
             throw new RuntimeException("桌台状态更新失败");
         }

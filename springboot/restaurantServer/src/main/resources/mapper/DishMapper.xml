@@ -6,6 +6,13 @@
 
 <mapper namespace="org.csu.restaurant.restaurantserver.mapper.DishMapper">
 
+    <select id="findCategories"
+            resultType="org.csu.restaurant.restaurantserver.entity.DishCategory">
+        SELECT id, name
+        FROM dish_category
+        ORDER BY id
+    </select>
+
     <!--查询u松油未删除的菜品-->
     <select id="findAll"
         resultType="org.csu.restaurant.restaurantserver.entity.Dish">
@@ -18,9 +25,17 @@
             stock,
             picture,
             description,
-            is_deleted AS isDeleted
-        FROM dish
-        WHERE is_deleted = 0
+            d.is_deleted AS isDeleted,
+            COALESCE(s.soldCount, 0) AS soldCount
+        FROM dish d
+        LEFT JOIN (
+            SELECT oi.dish_id, SUM(oi.count) AS soldCount
+            FROM order_item oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE o.pay_status = 1
+            GROUP BY oi.dish_id
+        ) s ON s.dish_id = d.id
+        WHERE d.is_deleted = 0
 
     </select>
 

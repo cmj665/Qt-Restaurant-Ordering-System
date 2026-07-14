@@ -92,6 +92,7 @@
 
         WHERE id=#{id}
 
+        AND pay_status=0
 
     </update>
 
@@ -112,6 +113,13 @@
         limit 1
 
     </select>
+
+    <update id="addTotalPrice">
+        UPDATE orders
+        SET total_price = total_price + #{amount}
+        WHERE id=#{id}
+          AND pay_status=0
+    </update>
 
 
     <select id="findDetailByTableId"

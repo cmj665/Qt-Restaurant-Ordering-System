@@ -1,53 +1,40 @@
 #ifndef DISHCARD_H
 #define DISHCARD_H
 
-#include <QWidget>
 #include <QLabel>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QPixmap>
-
 #include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-
+#include <QPushButton>
+#include <QWidget>
 #include "../model/Dish.h"
 
-namespace Ui {
-class DishCard;
-}
+namespace Ui { class DishCard; }
 
 class DishCard : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit DishCard(
-        const Dish &dish,
-        QWidget *parent = nullptr);
+    explicit DishCard(const Dish &dish, QWidget *parent = nullptr, bool recommended = false);
     ~DishCard();
+    void setQuantity(int quantity);
 
 signals:
-    //点击加入购物车发送
-    void addDish(Dish &dish);
+    void increaseDish(const Dish &dish);
+    void decreaseDish(int dishId);
 
 private:
     Ui::DishCard *ui;
     Dish m_dish;
-
+    int currentQuantity = 0;
     QLabel *imageLabel;
-
     QLabel *nameLabel;
-
     QLabel *priceLabel;
-
     QLabel *stockLabel;
-
-    QPushButton *addButton;
-
-    //请求图片
+    QLabel *soldLabel;
+    QLabel *quantityLabel;
+    QPushButton *minusButton;
+    QPushButton *plusButton;
     QNetworkAccessManager *manager;
-
 };
 
 #endif // DISHCARD_H

@@ -13,4 +13,5 @@ public class Dish {
     private String picture;
     private String description;
     private Integer isDeleted;
+    private Integer soldCount;
 }

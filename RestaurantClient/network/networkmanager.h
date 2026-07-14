@@ -6,6 +6,7 @@
 #include <QNetworkReply>
 #include <QList>
 #include <QJsonObject>
+#include <QMap>
 
 #include "../model/Dish.h"
 #include "../model/CartItem.h"
@@ -18,6 +19,7 @@ public:
     explicit NetworkManager(QObject *parent = nullptr);
 
     void getDishList();
+    void getDishCategories();
 
     void submitOrder(int tableId,const QList<CartItem> &items);
 
@@ -25,7 +27,11 @@ public:
 
     void updateTableStatus(int id,int status);
 
+    void cleanTable(int id);
+
     void getUnpaidOrder(int tableId);
+
+    void checkoutTable(int tableId);
 
     void pay(int orderId,int payType);
 
@@ -35,19 +41,24 @@ public:
 
 signals:
     void dishListReceived(QList<Dish> &dishes);
+    void dishCategoriesReceived(QMap<int, QString> categories);
     void orderSubmitted(bool success,const QString &message);
     void tableListReceived(QList<DiningTable> tables);
     void unpaidOrderReceived(bool hasOrder,int orderId,double money);
+    void checkoutReady(bool success, int orderId, double money, QString message);
     void payFinished(bool success,QString message);
     void orderDetailReceived(bool success,QJsonObject data);
 
     //桌台状态修改完成
     void tableStatusUpdated(bool success);
+    void tableCleaned(bool success, QString message);
 
     void orderCanPay(bool canPay,QString msg);
 
 private:
     QNetworkAccessManager *manager;
+    bool orderSubmitting = false;
+    void pollOrderTask(const QString &taskId, int attempt = 0);
 
 private slots:
     void onFinished(QNetworkReply *reply);

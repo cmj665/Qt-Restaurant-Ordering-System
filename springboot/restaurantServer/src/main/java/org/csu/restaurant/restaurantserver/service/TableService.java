@@ -8,7 +8,7 @@ public interface TableService {
 
     List<DiningTable> findAll();
 
-    int updateStatus(Integer id,Integer status);
+    void changeStatus(Integer id,Integer status);
 
-    boolean clean(Integer id);
+    void clean(Integer id);
 }
