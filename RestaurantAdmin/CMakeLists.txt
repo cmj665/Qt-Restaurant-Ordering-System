@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.19)
 project(RestaurantAdmin LANGUAGES CXX)
 
+set(CMAKE_AUTORCC ON)
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network LinguistTools)
 
 qt_standard_project_setup()
@@ -19,6 +21,7 @@ qt_add_executable(RestaurantAdmin
     dish/admindishwidget.h dish/admindishwidget.cpp
     dish/disheditdialog.h dish/disheditdialog.cpp
     order/adminorderwidget.h order/adminorderwidget.cpp
+    resources/control-arrows.qrc
 )
 
 qt_add_translations(

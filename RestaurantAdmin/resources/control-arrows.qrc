@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/controls">
+    <file>down-arrow.xpm</file>
+    <file>up-arrow.xpm</file>
+  </qresource>
+</RCC>

@@ -3,6 +3,7 @@
 
 #include <QDateTime>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QMessageBox>
 #include <QScroller>
 #include <QShowEvent>
@@ -11,6 +12,54 @@
 #include <QSet>
 #include <QColor>
 #include <algorithm>
+#include <QGraphicsDropShadowEffect>
+#include <QRadialGradient>
+#include <QFont>
+#include <QPainterPath>
+
+class TableStatusButton final : public QPushButton
+{
+public:
+    explicit TableStatusButton(QWidget *parent=nullptr):QPushButton(parent)
+    {
+        setCursor(Qt::PointingHandCursor);
+        setFlat(true);
+        setAttribute(Qt::WA_TranslucentBackground, true);
+    }
+    void setTableData(const DiningTable &value){data=value;update();}
+protected:
+    bool hitButton(const QPoint &position) const override {
+        QPainterPath path;
+        path.addRoundedRect(rect().adjusted(3,3,-3,-3), 28, 28);
+        return path.contains(position);
+    }
+    void paintEvent(QPaintEvent *) override {
+        QPainter painter(this);painter.setRenderHint(QPainter::Antialiasing,true);
+        QRectF card=rect().adjusted(5,5,-5,-5);
+        if(isDown())card.translate(0,3);
+        QColor first("#94a3b8"),second("#64748b");QString state="未知";
+        switch(data.status){
+        case 0:first=QColor("#6bcb77");second=QColor("#36a853");state="空闲";break;
+        case 1:first=QColor("#4ea8de");second=QColor("#2563a8");state="用餐中";break;
+        case 2:first=QColor("#ffd65a");second=QColor("#e7a916");state="待支付";break;
+        case 3:first=QColor("#90a4ae");second=QColor("#546e7a");state="完成待清理";break;
+        }
+        if(underMouse()){first=first.lighter(112);second=second.lighter(108);}
+        QRadialGradient gradient(card.center()-QPointF(48,35),card.width()*.72);
+        gradient.setColorAt(0,first);gradient.setColorAt(1,second);
+        painter.setBrush(gradient);
+        painter.setPen(QPen(QColor(255,255,255,105),2));
+        painter.drawRoundedRect(card, 28, 28);
+        painter.setPen(Qt::white);
+        QFont identifier("Arial Rounded MT Bold");identifier.setPixelSize(33);identifier.setWeight(QFont::Black);identifier.setLetterSpacing(QFont::AbsoluteSpacing,1.0);painter.setFont(identifier);
+        painter.drawText(QRectF(0,21,width(),46),Qt::AlignCenter,data.tableName);
+        QFont statusFont("Microsoft YaHei UI");statusFont.setPixelSize(17);statusFont.setWeight(QFont::DemiBold);painter.setFont(statusFont);
+        painter.drawText(QRectF(0,69,width(),27),Qt::AlignCenter,state);
+        QFont capacityFont("Microsoft YaHei UI");capacityFont.setPixelSize(14);painter.setFont(capacityFont);painter.setPen(QColor(255,255,255,205));
+        painter.drawText(QRectF(0,97,width(),23),Qt::AlignCenter,QString("%1人桌").arg(data.capacity));
+    }
+private: DiningTable data{};
+};
 
 TableWidget::TableWidget(QWidget *parent)
     : QWidget(parent)
@@ -23,14 +72,18 @@ TableWidget::TableWidget(QWidget *parent)
     , refreshTimer(new QTimer(this))
 {
     ui->setupUi(this);
+    setAttribute(Qt::WA_StyledBackground,true);
+    setStyleSheet("TableWidget{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #fffaf0,stop:0.55 #f8f0df,stop:1 #f3e7d2);}");
     ui->titleLabel->setText("桌台状态中心");
     ui->titleLabel->setAlignment(Qt::AlignCenter);
-    ui->titleLabel->setStyleSheet("font-size:36px;font-weight:bold;color:#22313f;padding:8px;");
+    ui->titleLabel->setStyleSheet("font-size:38px;font-weight:900;color:#5b3a22;padding:8px;background:transparent;");
 
     graphicsView->setScene(scene);
     graphicsView->setRenderHint(QPainter::Antialiasing, true);
     graphicsView->setFrameShape(QFrame::NoFrame);
-    graphicsView->setBackgroundBrush(QColor("#f5f7fa"));
+    graphicsView->setBackgroundBrush(Qt::NoBrush);
+    graphicsView->setStyleSheet("QGraphicsView{background:transparent;border:none;} QGraphicsView>QWidget{background:transparent;}");
+    graphicsView->viewport()->setStyleSheet("background:transparent;");
     graphicsView->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
     graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -41,19 +94,21 @@ TableWidget::TableWidget(QWidget *parent)
     refreshButton->setMinimumSize(118, 42);
     refreshButton->setCursor(Qt::PointingHandCursor);
     refreshButton->setStyleSheet(
-        "QPushButton{background:#34495e;color:white;border:none;border-radius:9px;font-size:16px;padding:7px 15px;}"
-        "QPushButton:hover{background:#2c3e50;} QPushButton:pressed{background:#20303d;}"
+        "QPushButton{background:#f2a14a;color:white;border:1px solid #e58a2d;border-radius:12px;font-size:16px;font-weight:700;padding:7px 15px;}"
+        "QPushButton:hover{background:#eb9132;} QPushButton:pressed{background:#dc7d22;}"
     );
-    refreshStatusLabel->setStyleSheet("font-size:14px;color:#6b7b8c;");
+    refreshStatusLabel->setStyleSheet("font-size:14px;color:#7a5335;background:rgba(255,255,255,150);border:1px solid #ead8bd;border-radius:12px;padding:7px 14px;");
 
-    QHBoxLayout *toolbar = new QHBoxLayout;
-    toolbar->addWidget(refreshStatusLabel);
-    toolbar->addStretch();
-    toolbar->addWidget(refreshButton);
+    QGridLayout *toolbar = new QGridLayout;
+    toolbar->setContentsMargins(0, 0, 0, 0);
+    toolbar->setColumnStretch(0, 1);
+    toolbar->setColumnStretch(2, 1);
+    toolbar->addWidget(refreshStatusLabel, 0, 1, Qt::AlignCenter);
+    toolbar->addWidget(refreshButton, 0, 2, Qt::AlignRight | Qt::AlignVCenter);
     createLegend();
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(30, 20, 30, 22);
+    mainLayout->setContentsMargins(48, 24, 48, 24);
     mainLayout->setSpacing(12);
     mainLayout->addWidget(ui->titleLabel);
     mainLayout->addLayout(toolbar);
@@ -113,35 +168,22 @@ void TableWidget::updateTableItem(const DiningTable &table)
     QPushButton *button = tableButtons.value(table.id, nullptr);
     if(!button)
     {
-        button = new QPushButton;
-        button->setFixedSize(245, 135);
-        button->setCursor(Qt::PointingHandCursor);
+        button = new TableStatusButton;
+        button->setFixedSize(280, 144);
         button->setProperty("tableId", table.id);
         QGraphicsProxyWidget *proxy = scene->addWidget(button);
-        proxy->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        button->show();
+        proxy->setVisible(true);
+        proxy->setOpacity(1.0);
+        auto *shadow=new QGraphicsDropShadowEffect;
+        shadow->setBlurRadius(28);shadow->setOffset(0,10);shadow->setColor(QColor(116,62,25,85));
+        proxy->setGraphicsEffect(shadow);
+        proxy->setCacheMode(QGraphicsItem::NoCache);
         tableButtons.insert(table.id, button);
         tableItems.insert(table.id, proxy);
     }
 
-    QString color = "#95a5a6";
-    QString hover = "#7f8c8d";
-    QString state = "未知";
-    QString textColor = "white";
-    switch(table.status)
-    {
-    case 0: color="#27ae60"; hover="#2ecc71"; state="空闲"; break;
-    case 1: color="#e67e22"; hover="#f39c12"; state="用餐中"; break;
-    case 2: color="#f1c40f"; hover="#f4d03f"; state="待结账"; textColor="#4a3b00"; break;
-    case 3: color="#607d8b"; hover="#78909c"; state="完成待清理"; break;
-    }
-
-    button->setText(QString("%1\n%2\n%3人桌").arg(table.tableName, state).arg(table.capacity));
-    button->setStyleSheet(QString(
-        "QPushButton{background:%1;color:%2;border:3px solid rgba(255,255,255,150);"
-        "border-radius:18px;font-size:21px;font-weight:bold;padding:10px;}"
-        "QPushButton:hover{background:%3;border-color:#34495e;}"
-        "QPushButton:pressed{border-width:5px;padding-top:14px;}"
-    ).arg(color, textColor, hover));
+    static_cast<TableStatusButton *>(button)->setTableData(table);
 
     button->disconnect(this);
     connect(button, &QPushButton::clicked, this, [this, table](){
@@ -161,11 +203,11 @@ void TableWidget::arrangeTableItems()
     QList<int> ids = tableItems.keys();
     std::sort(ids.begin(), ids.end());
     constexpr int columns = 3;
-    constexpr qreal cardWidth = 245;
-    constexpr qreal cardHeight = 135;
-    constexpr qreal horizontalGap = 38;
-    constexpr qreal verticalGap = 30;
-    constexpr qreal margin = 25;
+    constexpr qreal cardWidth = 280;
+    constexpr qreal cardHeight = 144;
+    constexpr qreal horizontalGap = 32;
+    constexpr qreal verticalGap = 24;
+    constexpr qreal margin = 32;
 
     for(int index = 0; index < ids.size(); ++index)
     {
@@ -185,9 +227,9 @@ QLabel *TableWidget::createColorLabel(const QString &color, const QString &text)
 {
     QLabel *label = new QLabel(text, this);
     label->setAlignment(Qt::AlignCenter);
-    label->setMinimumSize(112, 40);
+    label->setMinimumSize(125, 40);
     label->setStyleSheet(QString(
-        "QLabel{background:%1;border-radius:8px;font-size:15px;font-weight:bold;color:white;padding:4px;}"
+        "QLabel{background:%1;border:2px solid rgba(255,255,255,90);border-radius:18px;font-size:15px;font-weight:bold;color:white;padding:4px;}"
     ).arg(color));
     return label;
 }
@@ -195,14 +237,15 @@ QLabel *TableWidget::createColorLabel(const QString &color, const QString &text)
 void TableWidget::createLegend()
 {
     legendWidget = new QWidget(this);
+    legendWidget->setStyleSheet("QWidget{background:rgba(255,255,255,150);border:1px solid #e6d2b4;border-radius:18px;} QLabel{border:none;}");
     QHBoxLayout *legend = new QHBoxLayout(legendWidget);
     QLabel *title = new QLabel("状态说明：", legendWidget);
-    title->setStyleSheet("font-size:17px;font-weight:bold;");
+    title->setStyleSheet("font-size:17px;font-weight:bold;color:#5b3a22;background:transparent;");
     legend->addWidget(title);
-    legend->addWidget(createColorLabel("#27ae60", "空闲"));
-    legend->addWidget(createColorLabel("#e67e22", "用餐中"));
-    legend->addWidget(createColorLabel("#f1c40f", "待结账"));
-    legend->addWidget(createColorLabel("#607d8b", "完成待清理"));
+    legend->addWidget(createColorLabel("#36a853", "空闲"));
+    legend->addWidget(createColorLabel("#2563a8", "用餐中"));
+    legend->addWidget(createColorLabel("#e7a916", "待支付"));
+    legend->addWidget(createColorLabel("#546e7a", "完成待清理"));
     legend->addStretch();
 }
 

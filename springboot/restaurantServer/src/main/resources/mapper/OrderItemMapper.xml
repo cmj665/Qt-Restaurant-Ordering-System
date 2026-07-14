@@ -45,7 +45,8 @@
         SELECT oi.id, oi.order_id AS orderId, o.table_id AS tableId,
                dt.table_name AS tableName, oi.dish_id AS dishId,
                d.name AS dishName, oi.count, oi.price,
-               d.picture, oi.item_status AS itemStatus
+               d.picture, oi.item_status AS itemStatus,
+               o.create_time AS createTime
         FROM order_item oi
         JOIN orders o ON o.id=oi.order_id
         JOIN dining_table dt ON dt.id=o.table_id

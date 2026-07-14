@@ -3,6 +3,7 @@ package org.csu.restaurant.restaurantserver.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderItemDTO {
@@ -16,4 +17,5 @@ public class OrderItemDTO {
     private BigDecimal price;
     private String picture;
     private Integer itemStatus;
+    private LocalDateTime createTime;
 }
