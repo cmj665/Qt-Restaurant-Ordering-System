@@ -40,7 +40,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     titleLabel->setText(QString("%1号桌 · 点餐").arg(currentTableId));
     titleLabel->setMinimumHeight(54);
     titleLabel->setStyleSheet(
-        "QLabel{font-size:27px;font-weight:700;color:#1f2d3d;"
+        "QLabel{font-size:25px;font-weight:800;color:#ea6a20;"
         // "background:#eef6ff;border:1px solid #cfe5ff;border-radius:12px;"
         "padding:8px 20px;}"
     );
@@ -49,35 +49,39 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     changeTableButton = new QPushButton("换桌",this);
     //返回按钮
     backTableButton = new QPushButton("返回桌台",this);
+    themeButton = new QPushButton("夜间模式",this);
     changeTableButton->setText("换桌");
     backTableButton->setText("返回桌台");
     changeTableButton->setMinimumSize(108,48);
     backTableButton->setMinimumSize(128,48);
-    for(QPushButton *button : {changeTableButton, backTableButton})
+    themeButton->setMinimumWidth(128);
+    for(QPushButton *button : {changeTableButton, backTableButton, themeButton})
     {
+        button->setFixedHeight(48);
         button->setCursor(Qt::PointingHandCursor);
         button->setFont(QFont("Microsoft YaHei", 11, QFont::DemiBold));
     }
     changeTableButton->setStyleSheet(
-        "QPushButton{background:#fff7e6;color:#d97706;border:1px solid #f6c56f;border-radius:10px;padding:8px 16px;}"
-        "QPushButton:hover{background:#ffedd5;border-color:#f59e0b;}"
+        "QPushButton{background:#ffd166;color:#9a4312;border:none;border-radius:12px;padding:8px 18px;}"
+        "QPushButton:hover{background:#ffca45;}"
         "QPushButton:pressed{background:#fed7aa;padding-top:10px;}"
     );
     backTableButton->setStyleSheet(
-        "QPushButton{background:#f4f6f8;color:#435466;border:1px solid #cbd5df;border-radius:10px;padding:8px 16px;}"
-        "QPushButton:hover{background:#e8edf2;border-color:#94a3b2;}"
+        "QPushButton{background:#fff7ed;color:#ea6a20;border:1px solid #fed7aa;border-radius:12px;padding:8px 18px;}"
+        "QPushButton:hover{background:#ffedd5;border-color:#fb923c;}"
         "QPushButton:pressed{background:#dce3e9;padding-top:10px;}"
     );
 
     QWidget *topBar = new QWidget(this);
+    topBar->setAttribute(Qt::WA_StyledBackground,true);
     topBar->setObjectName("topBar");
     topBar->setStyleSheet(
-        "QWidget#topBar{background:white;border:1px solid #e1e8ef;border-radius:15px;}"
+        "QWidget#topBar{background:white;border:none;border-radius:20px;}"
     );
     QGraphicsDropShadowEffect *topShadow = new QGraphicsDropShadowEffect(topBar);
     topShadow->setBlurRadius(20);
     topShadow->setOffset(0, 4);
-    topShadow->setColor(QColor(31, 45, 61, 35));
+    topShadow->setColor(QColor(224, 122, 47, 35));
     topBar->setGraphicsEffect(topShadow);
     QHBoxLayout *topLayout = new QHBoxLayout(topBar);
     topLayout->setContentsMargins(14, 12, 14, 12);
@@ -87,6 +91,8 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     topLayout->addStretch();
     topLayout->addWidget(changeTableButton);
     topLayout->addWidget(backTableButton);
+    topLayout->addWidget(themeButton);
+    connect(themeButton,&QPushButton::clicked,this,[this](){darkMode=!darkMode;applyTheme();});
 
 
     //链接返回桌台按钮
@@ -122,16 +128,21 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     //真正放卡片的容器
 
     container =new QWidget();
+    container->setAttribute(Qt::WA_StyledBackground,true);
 
     layout =new QGridLayout(container);
 
     // container->setMinimumWidth(1000);
 
-    layout->setSpacing(20);
+    layout->setSpacing(24);
+    layout->setContentsMargins(24, 24, 24, 120);
 
     layout->setAlignment(Qt::AlignTop);
 
     scrollArea->setWidget(container);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet("QScrollArea{background:#fffaf0;border:none;border-radius:20px;} QScrollBar:vertical{width:0px;}");
+    container->setStyleSheet("background:#fffaf0;");
 
     //----------------页面总布局-------------
     QVBoxLayout *mainLayout =new QVBoxLayout(this);
@@ -139,9 +150,10 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     mainLayout->addWidget(topBar);
 
     categoryWidget = new QWidget(this);
+    categoryWidget->setAttribute(Qt::WA_StyledBackground,true);
     categoryWidget->setObjectName("categoryRail");
-    categoryWidget->setFixedWidth(150);
-    categoryWidget->setStyleSheet("QWidget#categoryRail{background:#182433;border-radius:14px;}");
+    categoryWidget->setFixedWidth(160);
+    categoryWidget->setStyleSheet("QWidget#categoryRail{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #e07a2f,stop:1 #ff8c42);border-radius:20px;}");
     categoryLayout = new QVBoxLayout(categoryWidget);
     categoryLayout->setContentsMargins(10, 14, 10, 14);
     categoryLayout->setSpacing(9);
@@ -151,7 +163,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     orderingLayout->addWidget(scrollArea, 1);
     mainLayout->addLayout(orderingLayout, 1);
 
-    mainLayout->setContentsMargins(15,15,15,15);
+    mainLayout->setContentsMargins(18,18,18,18);
 
     mainLayout->setSpacing(15);
 
@@ -182,22 +194,23 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     });
 
     cartSummaryBar = new QWidget(this);
+    cartSummaryBar->setAttribute(Qt::WA_StyledBackground,true);
     cartSummaryBar->setObjectName("cartSummaryBar");
     cartSummaryBar->setStyleSheet(
-        "QWidget#cartSummaryBar{background:#202b3c;border:1px solid #354157;border-radius:14px;}"
+        "QWidget#cartSummaryBar{background:rgba(255,255,255,245);border:1px solid #ffedd5;border-radius:20px;}"
     );
     QHBoxLayout *summaryLayout = new QHBoxLayout(cartSummaryBar);
     summaryLayout->setContentsMargins(18, 8, 8, 8);
     cartCountLabel = new QLabel("尚未选菜", cartSummaryBar);
-    cartCountLabel->setStyleSheet("color:#cbd5e1;font-size:14px;");
+    cartCountLabel->setStyleSheet("color:#6b7280;font-size:15px;");
     cartTotalLabel = new QLabel("￥0.00", cartSummaryBar);
-    cartTotalLabel->setStyleSheet("color:white;font-size:24px;font-weight:800;");
+    cartTotalLabel->setStyleSheet("color:#f97316;font-size:25px;font-weight:900;");
     cartConfirmButton = new QPushButton("确认菜品", cartSummaryBar);
     cartConfirmButton->setMinimumSize(132, 48);
     cartConfirmButton->setCursor(Qt::PointingHandCursor);
     cartConfirmButton->setStyleSheet(
-        "QPushButton{background:#e64b35;color:white;border:none;border-radius:10px;font-size:17px;font-weight:700;}"
-        "QPushButton:hover{background:#f05a43;} QPushButton:pressed{background:#c93e2b;}"
+        "QPushButton{background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #fb923c,stop:1 #ea580c);color:white;border:none;border-radius:16px;font-size:18px;font-weight:800;padding:0 28px;}"
+        "QPushButton:hover{background:#f97316;} QPushButton:pressed{background:#ea580c;}"
     );
     summaryLayout->addWidget(cartCountLabel);
     summaryLayout->addWidget(cartTotalLabel);
@@ -213,6 +226,10 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
     //--------------网络对象----------------
     network =new NetworkManager(this);
+    connect(network,&NetworkManager::tableListReceived,this,[this](const QList<DiningTable>&tables){
+        for(const DiningTable &table:tables)if(table.id==currentTableId){currentTableName=table.tableName;break;}
+        titleLabel->setText(QString("%1 · %2号桌 · 点餐").arg(currentTableName.isEmpty()?QString("桌台%1").arg(currentTableId):currentTableName).arg(currentTableId));
+    });
 
     connect(network,&NetworkManager::orderReceiptReceived,this,[this](bool success,const QJsonObject &receipt,const QString &message){
         if(!success){QMessageBox::warning(this,"小票生成失败",message);return;}
@@ -328,10 +345,11 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
             button->setCheckable(true);
             button->setChecked(selectedCategory == categoryId);
             button->setMinimumSize(128, 48);
-            button->setStyleSheet(
-                "QPushButton{background:transparent;color:#d7e0ea;border:none;border-radius:10px;padding:8px 12px;font-size:16px;text-align:left;}"
-                "QPushButton:hover{background:#26364a;color:white;}"
-                "QPushButton:checked{background:#f4d66d;color:#202938;font-weight:bold;}"
+            button->setStyleSheet(darkMode ?
+                "QPushButton{background:transparent;color:#d7e0ea;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#26364a;} QPushButton:checked{background:#e64b35;color:white;font-weight:900;}" :
+                "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;text-align:center;}"
+                "QPushButton:hover{background:rgba(255,255,255,35);color:white;}"
+                "QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}"
             );
             connect(button, &QPushButton::clicked, this, [this, categoryId](){
                 selectedCategory = categoryId;
@@ -556,6 +574,8 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
     network->getDishCategories();
     network->getDishList();
+    network->getTableList();
+    applyTheme();
 }
 
 void DishWidget::renderDishes()
@@ -583,6 +603,7 @@ void DishWidget::renderDishes()
     int visibleIndex = 0;
     auto addCard = [this, &visibleIndex](const Dish &dish, bool recommended){
         DishCard *card = new DishCard(dish, container, recommended);
+        card->setDarkMode(darkMode);
         card->setQuantity(cartWidget->quantityForDish(dish.id));
         connect(card, &DishCard::increaseDish, this, [this](const Dish &selectedDish){
             cartWidget->addDish(selectedDish);
@@ -640,6 +661,48 @@ QRect DishWidget::cartDrawerGeometry(bool opened) const
     return QRect(x, drawerTop, drawerWidth, drawerHeight);
 }
 
+void DishWidget::applyTheme()
+{
+    themeButton->setText(darkMode?"白天模式":"夜间模式");
+    QWidget *top=findChild<QWidget*>("topBar");
+    if(darkMode){
+        setStyleSheet("DishWidget{background:#101419;}");
+        if(top)top->setStyleSheet("QWidget#topBar{background:#3b414b;border:none;border-radius:20px;}");
+        titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#f8fafc;padding:8px 20px;background:transparent;");
+        categoryWidget->setStyleSheet("QWidget#categoryRail{background:#111820;border-radius:20px;}");
+        scrollArea->setStyleSheet("QScrollArea{background:#171c23;border:none;border-radius:20px;} QScrollArea>QWidget>QWidget{background:#171c23;border-radius:20px;} QScrollBar:vertical{width:0px;}");
+        scrollArea->viewport()->setStyleSheet("background:#171c23;border:none;border-radius:20px;");
+        container->setStyleSheet("background:#171c23;");
+        cartSummaryBar->setStyleSheet("QWidget#cartSummaryBar{background:#111820;border:1px solid #303844;border-radius:20px;}");
+        cartCountLabel->setStyleSheet("color:#cbd5e1;font-size:15px;");
+        cartTotalLabel->setStyleSheet("color:white;font-size:25px;font-weight:900;");
+        themeButton->setStyleSheet("QPushButton{background:#555d68;color:white;border:none;border-radius:12px;padding:8px 18px;}");
+        changeTableButton->setStyleSheet("QPushButton{background:#555d68;color:#ffd166;border:1px solid #69717d;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#626b77;}");
+        backTableButton->setStyleSheet("QPushButton{background:#474e58;color:#f1f5f9;border:1px solid #626a76;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#555d68;}");
+    }else{
+        setStyleSheet("DishWidget{background:#fffaf0;}");
+        if(top)top->setStyleSheet("QWidget#topBar{background:white;border:none;border-radius:20px;}");
+        titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#ea6a20;padding:8px 20px;");
+        categoryWidget->setStyleSheet("QWidget#categoryRail{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #e07a2f,stop:1 #ff8c42);border-radius:20px;}");
+        scrollArea->setStyleSheet("QScrollArea{background:#fffaf0;border:none;border-radius:20px;} QScrollBar:vertical{width:0px;}");
+        scrollArea->viewport()->setStyleSheet("background:#fffaf0;border:none;border-radius:20px;");
+        container->setStyleSheet("background:#fffaf0;");
+        cartSummaryBar->setStyleSheet("QWidget#cartSummaryBar{background:rgba(255,255,255,245);border:1px solid #ffedd5;border-radius:20px;}");
+        cartCountLabel->setStyleSheet("color:#6b7280;font-size:15px;");
+        cartTotalLabel->setStyleSheet("color:#f97316;font-size:25px;font-weight:900;");
+        themeButton->setStyleSheet("QPushButton{background:#374151;color:white;border:none;border-radius:12px;padding:8px 18px;}");
+        changeTableButton->setStyleSheet("QPushButton{background:#ffd166;color:#9a4312;border:none;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#ffca45;}");
+        backTableButton->setStyleSheet("QPushButton{background:#fff7ed;color:#ea6a20;border:1px solid #fed7aa;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#ffedd5;}");
+    }
+    for(QPushButton *button:categoryWidget->findChildren<QPushButton*>()){
+        button->setStyleSheet(darkMode?
+            "QPushButton{background:transparent;color:#d7e0ea;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#26364a;} QPushButton:checked{background:#e64b35;color:white;font-weight:900;}":
+            "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:rgba(255,255,255,35);} QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}");
+    }
+    for(DishCard *card:container->findChildren<DishCard*>())card->setDarkMode(darkMode);
+    cartWidget->setDarkMode(darkMode);
+}
+
 void DishWidget::openCartDrawer()
 {
     cartDrawerOpen = true;
@@ -672,8 +735,8 @@ void DishWidget::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
     if(cartSummaryBar)
     {
-        const int barWidth = qMin(430, width() - 40);
-        cartSummaryBar->setGeometry(width() - barWidth - 28, height() - 82, barWidth, 64);
+        const int left = 18 + 160 + 14;
+        cartSummaryBar->setGeometry(left, height() - 108, qMax(300, width() - left - 18), 90);
         if(!cartDrawerOpen)
             cartSummaryBar->raise();
     }

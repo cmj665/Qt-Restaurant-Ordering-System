@@ -40,6 +40,7 @@ public:
     void clearCart();
     void setSubmitting(bool submitting);
     void refreshOrderedOrder();
+    void setDarkMode(bool enabled);
 
 signals:
     void submitOrderRequested(const QList<CartItem> &items);
@@ -59,6 +60,7 @@ private:
     Ui::CartWidget *ui;
     QMap<int, CartItem> m_cart;
     bool submitting = false;
+    bool darkMode = false;
     QNetworkAccessManager *imageManager;
     QHash<int, QPixmap> imageCache;
     int tableId;

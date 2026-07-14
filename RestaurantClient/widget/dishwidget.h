@@ -71,6 +71,7 @@ private:
     QLabel *titleLabel;
     QPushButton *changeTableButton;
     QPushButton *backTableButton;
+    QPushButton *themeButton;
 
     int pendingOrderId;
     double pendingMoney;
@@ -90,6 +91,9 @@ private:
     int rewardChances = 0;
     void offerRewardDraw();
     QPointer<BlindBoxDialog> activeBlindBox;
+    bool darkMode = false;
+    QString currentTableName;
+    void applyTheme();
 
 
 };

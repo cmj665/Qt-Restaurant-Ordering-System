@@ -8,6 +8,7 @@
 #include "../model/Dish.h"
 
 namespace Ui { class DishCard; }
+class QResizeEvent;
 
 class DishCard : public QWidget
 {
@@ -17,6 +18,7 @@ public:
     explicit DishCard(const Dish &dish, QWidget *parent = nullptr, bool recommended = false);
     ~DishCard();
     void setQuantity(int quantity);
+    void setDarkMode(bool enabled);
 
 signals:
     void increaseDish(const Dish &dish);

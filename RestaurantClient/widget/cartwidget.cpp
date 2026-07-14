@@ -70,7 +70,7 @@ CartWidget::CartWidget(int tableIdValue, QWidget *parent)
 
     ui->titleLabel->setText(QString("%1号桌").arg(tableId));
     ui->titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    ui->titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:white;padding:8px;");
+    ui->titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#9a4312;padding:8px;");
     ui->verticalLayout->removeWidget(ui->titleLabel);
     QHBoxLayout *headerLayout = new QHBoxLayout;
     headerLayout->setContentsMargins(6, 2, 2, 4);
@@ -80,27 +80,27 @@ CartWidget::CartWidget(int tableIdValue, QWidget *parent)
     drawerCloseButton->setFixedSize(40, 40);
     drawerCloseButton->setCursor(Qt::PointingHandCursor);
     drawerCloseButton->setStyleSheet(
-        "QPushButton{background:#343d4d;color:#e2e8f0;border:none;border-radius:20px;font-size:25px;}"
-        "QPushButton:hover{background:#465267;color:white;}"
+        "QPushButton{background:#ffedd5;color:#ea580c;border:none;border-radius:20px;font-size:25px;}"
+        "QPushButton:hover{background:#fed7aa;}"
     );
     headerLayout->addWidget(drawerCloseButton);
     ui->verticalLayout->insertLayout(0, headerLayout);
 
     ui->verticalLayout->removeWidget(ui->cartListWidget);
     QWidget *newItemsPage = new QWidget(this);
-    newItemsPage->setStyleSheet("background:#242e3a;");
+    newItemsPage->setStyleSheet("background:#fffaf0;");
     QVBoxLayout *newItemsLayout = new QVBoxLayout(newItemsPage);
     newItemsLayout->setContentsMargins(0, 12, 0, 10);
     newItemsLayout->addWidget(ui->cartListWidget);
 
     QWidget *orderedPage = new QWidget(this);
-    orderedPage->setStyleSheet("background:#242e3a;");
+    orderedPage->setStyleSheet("background:#fffaf0;");
     QVBoxLayout *orderedLayout = new QVBoxLayout(orderedPage);
     orderedLayout->setContentsMargins(0, 12, 0, 10);
     orderedListWidget = new QListWidget(orderedPage);
     orderedSummaryLabel = new QLabel("正在读取已下单菜品…", orderedPage);
     orderedSummaryLabel->setAlignment(Qt::AlignRight);
-    orderedSummaryLabel->setStyleSheet("font-size:18px;font-weight:700;color:#ffb15c;padding:8px;");
+    orderedSummaryLabel->setStyleSheet("font-size:18px;font-weight:700;color:#f97316;padding:8px;");
     orderedLayout->addWidget(orderedListWidget, 1);
     orderedLayout->addWidget(orderedSummaryLabel);
 
@@ -112,14 +112,14 @@ CartWidget::CartWidget(int tableIdValue, QWidget *parent)
     tabWidget->tabBar()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     tabWidget->setDocumentMode(false);
     tabWidget->setStyleSheet(
-        "QTabWidget{background:#1d2530;}"
-        "QTabWidget::pane{border:1px solid #4a5666;border-radius:0 0 15px 15px;background:#242e3a;top:-1px;}"
-        "QTabBar{background:#1d2530;}"
-        "QTabBar::tab{padding:13px 8px;background:#2a3542;color:#b8c2cf;border:1px solid #4a5666;font-size:17px;}"
+        "QTabWidget{background:#fffaf0;}"
+        "QTabWidget::pane{border:1px solid #fed7aa;border-radius:0 0 15px 15px;background:#fffaf0;top:-1px;}"
+        "QTabBar{background:#fffaf0;}"
+        "QTabBar::tab{padding:13px 8px;background:#ffedd5;color:#9a4312;border:1px solid #fed7aa;font-size:17px;}"
         "QTabBar::tab:first{border-top-left-radius:15px;}"
         "QTabBar::tab:last{border-top-right-radius:15px;}"
-        "QTabBar::tab:selected{background:#465568;color:#ffffff;border-bottom-color:#465568;font-weight:700;}"
-        "QTabBar::tab:hover:!selected{background:#354252;color:#eef2f7;}"
+        "QTabBar::tab:selected{background:#ff8c42;color:white;border-bottom-color:#ff8c42;font-weight:700;}"
+        "QTabBar::tab:hover:!selected{background:#fed7aa;color:#9a4312;}"
     );
     QWidget *tabContainer = new QWidget(this);
     tabContainer->setStyleSheet("background:transparent;");
@@ -129,11 +129,11 @@ CartWidget::CartWidget(int tableIdValue, QWidget *parent)
     tabContainerLayout->addWidget(tabWidget);
     ui->verticalLayout->insertWidget(1, tabContainer, 1);
     ui->totalLabel->setAlignment(Qt::AlignRight);
-    ui->totalLabel->setStyleSheet("font-size:20px;font-weight:bold;color:#ffb15c;padding:8px;");
+    ui->totalLabel->setStyleSheet("font-size:20px;font-weight:bold;color:#f97316;padding:8px;");
     const QString listStyle =
-        "QListWidget{background:#202936;color:#e8edf3;border:1px solid #4a5666;border-radius:14px;outline:none;padding:10px;}"
-        "QListWidget::item{border-bottom:1px solid #3c4857;padding-left:4px;}"
-        "QListWidget::item:selected{background:#354354;border-radius:9px;}";
+        "QListWidget{background:white;color:#374151;border:1px solid #fed7aa;border-radius:14px;outline:none;padding:10px;}"
+        "QListWidget::item{border-bottom:1px solid #ffedd5;padding-left:4px;}"
+        "QListWidget::item:selected{background:#fff7ed;border-radius:9px;}";
     ui->cartListWidget->setStyleSheet(listStyle);
     orderedListWidget->setStyleSheet(listStyle);
 
@@ -145,11 +145,11 @@ CartWidget::CartWidget(int tableIdValue, QWidget *parent)
     ui->submitButton->setMinimumHeight(48);
     ui->detailButton->setMinimumHeight(42);
     ui->checkoutButton->setMinimumHeight(48);
-    ui->submitButton->setStyleSheet("QPushButton{background:#263a30;color:#d9f3e3;border:1px solid #4b765d;border-radius:7px;font-size:17px;} QPushButton:hover{background:#30483b;} QPushButton:disabled{background:#181b20;color:#60656d;border-color:#30343a;}");
-    ui->checkoutButton->setStyleSheet("QPushButton{background:#443426;color:#ffe2bd;border:1px solid #806044;border-radius:7px;font-size:17px;} QPushButton:hover{background:#523e2d;} QPushButton:disabled{background:#181b20;color:#60656d;border-color:#30343a;}");
+    ui->submitButton->setStyleSheet("QPushButton{background:#f97316;color:white;border:none;border-radius:10px;font-size:17px;font-weight:700;} QPushButton:hover{background:#ea580c;} QPushButton:disabled{background:#e5e7eb;color:#9ca3af;}");
+    ui->checkoutButton->setStyleSheet("QPushButton{background:#ffd166;color:#9a4312;border:none;border-radius:10px;font-size:17px;font-weight:700;} QPushButton:hover{background:#ffca45;} QPushButton:disabled{background:#e5e7eb;color:#9ca3af;}");
     const QString secondaryButtonStyle =
-        "QPushButton{background:#171a1f;color:#c9ced6;border:1px solid #40454e;border-radius:7px;padding:8px;font-size:14px;}"
-        "QPushButton:hover{background:#25292f;border-color:#5a616c;color:white;} QPushButton:disabled{color:#555b64;background:#111318;border-color:#292d33;}";
+        "QPushButton{background:white;color:#ea580c;border:1px solid #fed7aa;border-radius:8px;padding:8px;font-size:14px;}"
+        "QPushButton:hover{background:#fff7ed;} QPushButton:disabled{color:#9ca3af;background:#f3f4f6;border-color:#e5e7eb;}";
     ui->removeButton->setStyleSheet(secondaryButtonStyle);
     ui->clearButton->setStyleSheet(secondaryButtonStyle);
     ui->detailButton->setStyleSheet(secondaryButtonStyle);
@@ -225,9 +225,31 @@ void CartWidget::paintEvent(QPaintEvent *event)
     Q_UNUSED(event);
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setPen(QPen(QColor("#4a5666"), 1));
-    painter.setBrush(QColor("#1d2530"));
+    painter.setPen(QPen(QColor(darkMode?"#4a5666":"#fed7aa"), 1));
+    painter.setBrush(QColor(darkMode?"#1d2530":"#fffaf0"));
     painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 24, 24);
+}
+
+void CartWidget::setDarkMode(bool enabled)
+{
+    darkMode=enabled;
+    if(enabled){
+        for(int i=0;i<tabWidget->count();++i)tabWidget->widget(i)->setStyleSheet("background:#242e3a;");
+        ui->titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:white;padding:8px;");
+        tabWidget->setStyleSheet("QTabWidget{background:#1d2530;} QTabWidget::pane{border:1px solid #4a5666;background:#242e3a;} QTabBar::tab{padding:13px;background:#2a3542;color:#b8c2cf;border:1px solid #4a5666;font-size:17px;} QTabBar::tab:selected{background:#465568;color:white;font-weight:700;}");
+        const QString lists="QListWidget{background:#202936;color:#e8edf3;border:1px solid #4a5666;border-radius:14px;padding:10px;} QListWidget::item{border-bottom:1px solid #3c4857;}";
+        ui->cartListWidget->setStyleSheet(lists);orderedListWidget->setStyleSheet(lists);
+        ui->totalLabel->setStyleSheet("font-size:20px;font-weight:bold;color:#ffb15c;padding:8px;");
+    }else{
+        for(int i=0;i<tabWidget->count();++i)tabWidget->widget(i)->setStyleSheet("background:#fffaf0;");
+        ui->titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#9a4312;padding:8px;");
+        tabWidget->setStyleSheet("QTabWidget{background:#fffaf0;} QTabWidget::pane{border:1px solid #fed7aa;background:#fffaf0;} QTabBar::tab{padding:13px;background:#ffedd5;color:#9a4312;border:1px solid #fed7aa;font-size:17px;} QTabBar::tab:selected{background:#ff8c42;color:white;font-weight:700;}");
+        const QString lists="QListWidget{background:white;color:#374151;border:1px solid #fed7aa;border-radius:14px;padding:10px;} QListWidget::item{border-bottom:1px solid #ffedd5;}";
+        ui->cartListWidget->setStyleSheet(lists);orderedListWidget->setStyleSheet(lists);
+        ui->totalLabel->setStyleSheet("font-size:20px;font-weight:bold;color:#f97316;padding:8px;");
+    }
+    update();
+    refreshCart();
 }
 
 void CartWidget::setSubmitting(bool value)
@@ -285,13 +307,13 @@ void CartWidget::refreshCart()
         ui->cartListWidget->addItem(listItem);
 
         QWidget *row = new QWidget(ui->cartListWidget);
-        row->setStyleSheet("QWidget{background:transparent;} QLabel{color:#eef2f7;}");
+        row->setStyleSheet(darkMode?"QWidget{background:transparent;} QLabel{color:#eef2f7;}":"QWidget{background:transparent;} QLabel{color:#374151;}");
         QHBoxLayout *rowLayout = new QHBoxLayout(row);
         rowLayout->setContentsMargins(12, 7, 10, 7);
         QLabel *thumbnail = new QLabel("加载中", row);
         thumbnail->setFixedSize(82, 72);
         thumbnail->setAlignment(Qt::AlignCenter);
-        thumbnail->setStyleSheet("background:#1b1e23;border:1px solid #343941;border-radius:7px;color:#8f96a1;");
+        thumbnail->setStyleSheet("background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;color:#9ca3af;");
         QLabel *description = new QLabel(
             QString("<b>%1</b><br><span style='color:#777'>单价 ￥%2</span><br>"
                     "<span style='color:#e74c3c;font-weight:bold'>小计 ￥%3</span>")
@@ -310,7 +332,7 @@ void CartWidget::refreshCart()
         for(QPushButton *button : {minus, plus})
         {
             button->setFixedSize(32, 32);
-            button->setStyleSheet("QPushButton{background:#252b33;color:#e4e8ee;border:1px solid #505967;border-radius:16px;font-size:19px;font-weight:bold;} QPushButton:hover{background:#343c47;} QPushButton:disabled{background:#17191d;color:#555b63;border-color:#292d33;}");
+            button->setStyleSheet("QPushButton{background:#f97316;color:white;border:none;border-radius:9px;font-size:19px;font-weight:bold;} QPushButton:hover{background:#ea580c;} QPushButton:disabled{background:#e5e7eb;color:#9ca3af;}");
         }
         plus->setEnabled(item.count < item.dish.stock && !submitting);
         minus->setEnabled(!submitting);
@@ -387,13 +409,13 @@ void CartWidget::renderOrderedOrder(bool success, const QJsonObject &data)
         orderedListWidget->addItem(listItem);
 
         QWidget *row = new QWidget(orderedListWidget);
-        row->setStyleSheet("QWidget{background:transparent;} QLabel{color:#eef2f7;}");
+        row->setStyleSheet(darkMode?"QWidget{background:transparent;} QLabel{color:#eef2f7;}":"QWidget{background:transparent;} QLabel{color:#374151;}");
         QHBoxLayout *rowLayout = new QHBoxLayout(row);
         rowLayout->setContentsMargins(12, 7, 10, 7);
         QLabel *thumbnail = new QLabel("图片", row);
         thumbnail->setFixedSize(76, 66);
         thumbnail->setAlignment(Qt::AlignCenter);
-        thumbnail->setStyleSheet("background:#1b1e23;border:1px solid #343941;border-radius:8px;color:#8f96a1;");
+        thumbnail->setStyleSheet("background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9ca3af;");
         QLabel *name = new QLabel(QString("<b>%1</b><br><span style='color:#64748b'>￥%2 × %3</span>")
             .arg(item.value("dishName").toString()).arg(price, 0, 'f', 2).arg(count), row);
         name->setTextFormat(Qt::RichText);
