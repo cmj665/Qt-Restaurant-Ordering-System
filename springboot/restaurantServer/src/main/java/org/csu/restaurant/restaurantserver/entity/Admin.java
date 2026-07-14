@@ -9,5 +9,7 @@ public class Admin {
     private String username;
     private String password;
     private String role;
+    private String securityQuestion;
+    private String securityAnswerHash;
 
 }

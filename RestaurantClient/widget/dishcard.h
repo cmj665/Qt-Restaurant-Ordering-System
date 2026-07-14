@@ -10,6 +10,10 @@
 namespace Ui { class DishCard; }
 class QResizeEvent;
 class QPaintEvent;
+class QEnterEvent;
+class QEvent;
+class QPropertyAnimation;
+class QGraphicsDropShadowEffect;
 
 class DishCard : public QWidget
 {
@@ -27,6 +31,8 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
 private:
     Ui::DishCard *ui;
@@ -43,6 +49,12 @@ private:
     QNetworkAccessManager *manager;
     bool darkMode = false;
     bool imageLoaded = false;
+    bool hovered = false;
+    QPropertyAnimation *shadowBlurAnimation = nullptr;
+    QPropertyAnimation *shadowOffsetAnimation = nullptr;
+    QGraphicsDropShadowEffect *cardShadow = nullptr;
+
+    void animateHover(bool raised);
 };
 
 #endif // DISHCARD_H

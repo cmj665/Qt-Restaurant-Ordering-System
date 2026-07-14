@@ -8,6 +8,10 @@
 #include <QPainterPath>
 #include <QPainter>
 #include <QPixmapCache>
+#include <QEnterEvent>
+#include <QGraphicsDropShadowEffect>
+#include <QPropertyAnimation>
+#include <QEasingCurve>
 
 DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     : QWidget(parent)
@@ -19,6 +23,21 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     setAttribute(Qt::WA_StyledBackground,false);
     setAttribute(Qt::WA_TranslucentBackground,true);
     setFixedSize(300, 388);
+    setMouseTracking(true);
+
+    cardShadow = new QGraphicsDropShadowEffect(this);
+    cardShadow->setBlurRadius(14);
+    cardShadow->setOffset(0, 4);
+    cardShadow->setColor(QColor(0, 0, 0, 45));
+    setGraphicsEffect(cardShadow);
+
+    shadowBlurAnimation = new QPropertyAnimation(cardShadow, "blurRadius", this);
+    shadowOffsetAnimation = new QPropertyAnimation(cardShadow, "offset", this);
+    for(QPropertyAnimation *animation : {shadowBlurAnimation, shadowOffsetAnimation})
+    {
+        animation->setDuration(160);
+        animation->setEasingCurve(QEasingCurve::OutCubic);
+    }
 
     imageLabel = new QLabel(this);
     imageLabel->setFixedSize(298, 190);
@@ -200,6 +219,39 @@ void DishCard::paintEvent(QPaintEvent *event)
     painter.setPen(QPen(QColor(darkMode ? "#3a3a3a" : "#ffffff"), 1));
     painter.setBrush(QColor(darkMode ? "#2a2a2a" : "#ffffff"));
     painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), darkMode?16:24, darkMode?16:24);
+}
+
+void DishCard::enterEvent(QEnterEvent *event)
+{
+    QWidget::enterEvent(event);
+    if(hovered)
+        return;
+    hovered = true;
+    animateHover(true);
+}
+
+void DishCard::leaveEvent(QEvent *event)
+{
+    QWidget::leaveEvent(event);
+    if(!hovered)
+        return;
+    hovered = false;
+    animateHover(false);
+}
+
+void DishCard::animateHover(bool raised)
+{
+    shadowBlurAnimation->stop();
+    shadowOffsetAnimation->stop();
+    shadowBlurAnimation->setStartValue(cardShadow->blurRadius());
+    shadowBlurAnimation->setEndValue(raised ? 28.0 : 14.0);
+    shadowOffsetAnimation->setStartValue(cardShadow->offset());
+    shadowOffsetAnimation->setEndValue(QPointF(0, raised ? 11 : 4));
+    cardShadow->setColor(darkMode
+        ? QColor(0, 0, 0, raised ? 150 : 95)
+        : QColor(73, 45, 20, raised ? 85 : 45));
+    shadowBlurAnimation->start();
+    shadowOffsetAnimation->start();
 }
 
 

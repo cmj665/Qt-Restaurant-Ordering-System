@@ -14,12 +14,20 @@
         id,
         username,
         password,
-        role
+        role,
+        security_question AS securityQuestion,
+        security_answer_hash AS securityAnswerHash
 
         FROM admin
 
         WHERE username=#{username}
 
     </select>
+
+    <update id="updatePassword">
+        UPDATE admin
+        SET password=#{password}
+        WHERE username=#{username}
+    </update>
 
 </mapper>

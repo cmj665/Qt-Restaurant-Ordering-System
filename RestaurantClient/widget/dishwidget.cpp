@@ -25,6 +25,28 @@
 #include <QResizeEvent>
 #include <QEasingCurve>
 
+namespace {
+int categoryPriority(const QString &name)
+{
+    const QString normalized = name.trimmed();
+    if(normalized.contains("主食")) return 0;
+    if(normalized.contains("小吃")) return 1;
+    if(normalized.contains("甜品") || normalized.contains("甜点")) return 2;
+    if(normalized.contains("饮料") || normalized.contains("饮品")) return 3;
+    return 100;
+}
+
+QString categoryDisplayName(const QString &name)
+{
+    const int priority = categoryPriority(name);
+    if(priority == 0) return "主食";
+    if(priority == 1) return "小吃";
+    if(priority == 2) return "甜品";
+    if(priority == 3) return "饮料";
+    return name;
+}
+}
+
 DishWidget::DishWidget(int tableId,QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DishWidget)
@@ -334,6 +356,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
     connect(network, &NetworkManager::dishCategoriesReceived, this,
             [this](const QMap<int, QString> &categories){
+        dishCategories = categories;
         while(QLayoutItem *item = categoryLayout->takeAt(0))
         {
             delete item->widget();
@@ -363,9 +386,18 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
         addCategoryButton(-1, "🔥 热销榜");
         addCategoryButton(0, "全部");
-        for(auto it = categories.cbegin(); it != categories.cend(); ++it)
-            addCategoryButton(it.key(), it.value());
+        QList<int> categoryIds = categories.keys();
+        std::sort(categoryIds.begin(), categoryIds.end(), [&categories](int leftId, int rightId){
+            const int leftPriority = categoryPriority(categories.value(leftId));
+            const int rightPriority = categoryPriority(categories.value(rightId));
+            if(leftPriority != rightPriority)
+                return leftPriority < rightPriority;
+            return leftId < rightId;
+        });
+        for(int categoryId : categoryIds)
+            addCategoryButton(categoryId, categoryDisplayName(categories.value(categoryId)));
         categoryLayout->addStretch();
+        renderDishes();
     });
 
 
@@ -589,7 +621,9 @@ void DishWidget::renderDishes()
 
     QList<Dish> ranking = dishes;
     std::sort(ranking.begin(), ranking.end(), [](const Dish &left, const Dish &right){
-        return left.soldCount > right.soldCount;
+        if(left.soldCount != right.soldCount)
+            return left.soldCount > right.soldCount;
+        return left.id < right.id;
     });
 
     QSet<int> hotDishIds;
@@ -648,7 +682,18 @@ void DishWidget::renderDishes()
         }
     }
 
-    for(const Dish &dish : dishes)
+    QList<Dish> orderedDishes = dishes;
+    std::stable_sort(orderedDishes.begin(), orderedDishes.end(), [this](const Dish &left, const Dish &right){
+        const int leftPriority = categoryPriority(dishCategories.value(left.catId));
+        const int rightPriority = categoryPriority(dishCategories.value(right.catId));
+        if(leftPriority != rightPriority)
+            return leftPriority < rightPriority;
+        if(left.catId != right.catId)
+            return left.catId < right.catId;
+        return left.id < right.id;
+    });
+
+    for(const Dish &dish : orderedDishes)
     {
         if(selectedCategory > 0 && dish.catId != selectedCategory)
             continue;

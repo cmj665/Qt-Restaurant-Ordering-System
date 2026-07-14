@@ -7,6 +7,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QUrl>
+#include <QUrlQuery>
 
 namespace {
 QString errorMessage(QNetworkReply *reply, const QByteArray &body)
@@ -32,6 +33,44 @@ void NetworkManager::login(const QString &username, const QString &password)
         } else {
             const QJsonObject object = QJsonDocument::fromJson(data).object();
             emit loginFinished(true, "登录成功", object.value("username").toString(username));
+        }
+        reply->deleteLater();
+    });
+}
+
+void NetworkManager::getSecurityQuestion(const QString &username)
+{
+    QUrl url(baseUrl + "/admin/security-question");
+    QUrlQuery query;
+    query.addQueryItem("username", username);
+    url.setQuery(query);
+    QNetworkReply *reply = manager->get(QNetworkRequest(url));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, username]() {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            emit securityQuestionFinished(false, errorMessage(reply, data), {}, username);
+        } else {
+            const QJsonObject object = QJsonDocument::fromJson(data).object();
+            emit securityQuestionFinished(true, {}, object.value("question").toString(),
+                                          object.value("username").toString(username));
+        }
+        reply->deleteLater();
+    });
+}
+
+void NetworkManager::resetPassword(const QString &username, const QString &securityAnswer, const QString &newPassword)
+{
+    QNetworkRequest request{QUrl(baseUrl + "/admin/reset-password")};
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QJsonObject body{{"username", username}, {"securityAnswer", securityAnswer}, {"newPassword", newPassword}};
+    QNetworkReply *reply = manager->post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError) {
+            emit passwordResetFinished(false, errorMessage(reply, data));
+        } else {
+            const QJsonObject object = QJsonDocument::fromJson(data).object();
+            emit passwordResetFinished(true, object.value("message").toString("密码重置成功"));
         }
         reply->deleteLater();
     });

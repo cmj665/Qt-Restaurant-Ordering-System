@@ -1,5 +1,6 @@
 #include "adminloginwidget.h"
 #include "ui_adminloginwidget.h"
+#include "passwordrecoverydialog.h"
 #include "../network/networkmanager.h"
 
 #include <QLabel>
@@ -7,6 +8,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QGraphicsDropShadowEffect>
+#include <QHBoxLayout>
 
 AdminLoginWidget::AdminLoginWidget(QWidget *parent)
     : QWidget(parent)
@@ -84,12 +86,25 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
     messageLabel->setFixedHeight(24);
     messageLabel->setStyleSheet("color:#d65c4a;font-size:14px;background:transparent;");
 
+    auto *forgotButton = new QPushButton("忘记密码？", panel);
+    forgotButton->setCursor(Qt::PointingHandCursor);
+    forgotButton->setFocusPolicy(Qt::NoFocus);
+    forgotButton->setStyleSheet(
+        "QPushButton{outline:none;background:transparent;color:#d98231;border:0;font-size:14px;padding:3px 5px;}"
+        "QPushButton:hover{color:#bd681f;text-decoration:underline;}"
+    );
+    auto *forgotRow = new QHBoxLayout;
+    forgotRow->setContentsMargins(0, -5, 0, -3);
+    forgotRow->addStretch();
+    forgotRow->addWidget(forgotButton);
+
     form->addWidget(brandMark);
     form->addWidget(title);
     form->addWidget(subtitle);
     form->addSpacing(4);
     form->addWidget(usernameEdit);
     form->addWidget(passwordEdit);
+    form->addLayout(forgotRow);
     form->addWidget(messageLabel);
     form->addWidget(loginButton);
 
@@ -103,16 +118,29 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
 
     connect(loginButton, &QPushButton::clicked, this, &AdminLoginWidget::submitLogin);
     connect(passwordEdit, &QLineEdit::returnPressed, this, &AdminLoginWidget::submitLogin);
+    connect(forgotButton, &QPushButton::clicked, this, [this]() {
+        PasswordRecoveryDialog dialog(usernameEdit->text(), this);
+        if (dialog.exec() == QDialog::Accepted) {
+            messageLabel->setStyleSheet("color:#2e8b57;font-size:14px;background:transparent;");
+            messageLabel->setText("密码已重置，请输入新密码登录");
+            passwordEdit->clear();
+            passwordEdit->setFocus();
+        }
+    });
     connect(network, &NetworkManager::loginFinished, this,
             [this](bool success, const QString &message, const QString &username) {
         loginButton->setEnabled(true);
         if (success) emit loginSucceeded(username);
-        else messageLabel->setText(message);
+        else {
+            messageLabel->setStyleSheet("color:#d65c4a;font-size:14px;background:transparent;");
+            messageLabel->setText(message);
+        }
     });
 }
 
 void AdminLoginWidget::submitLogin()
 {
+    messageLabel->setStyleSheet("color:#d65c4a;font-size:14px;background:transparent;");
     const QString username = usernameEdit->text().trimmed();
     if (username.isEmpty() || passwordEdit->text().isEmpty()) {
         messageLabel->setText("请输入账号和密码");

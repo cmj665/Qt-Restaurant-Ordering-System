@@ -104,10 +104,11 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
 
     connect(network,&NetworkManager::dishListReceived,this,[this](const QList<Dish>&dishes){
         table->setRowCount(dishes.size());
-        int active=0, removed=0, low=0;
+        int active=0, removed=0, low=0, maxId=0;
         QStringList lowNames;
         for(int row=0;row<dishes.size();++row){
             const Dish dish=dishes[row];
+            maxId=qMax(maxId,dish.id);
             const bool deleted=dish.isDeleted==1;
             if(deleted) ++removed;
             else { ++active; if(dish.stock<10){++low;lowNames<<QString("%1(%2)").arg(dish.name).arg(dish.stock);} }
@@ -213,8 +214,9 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
         }
         const QString warning=low>0?QString("库存预警 %1 项：%2").arg(low).arg(lowNames.join("、")):"库存正常";
         statusLabel->setStyleSheet(low>0?"color:#d32f2f;font-weight:bold;":"color:#2e7d32;");
-        statusLabel->setText(QString("在售 %1 · 已下架 %2 · %3 · 最近刷新 %4")
-            .arg(active).arg(removed).arg(warning).arg(QDateTime::currentDateTime().toString("HH:mm:ss")));
+        statusLabel->setText(QString("共 %1 道菜 · 在售 %2 · 已下架 %3 · 最大编号 %4（编号允许不连续） · %5 · 最近刷新 %6")
+            .arg(dishes.size()).arg(active).arg(removed).arg(maxId).arg(warning)
+            .arg(QDateTime::currentDateTime().toString("HH:mm:ss")));
     });
     connect(network,&NetworkManager::dishOperationFinished,this,[this](bool success,const QString&message){
         if(!success) QMessageBox::warning(this,"操作失败",message);

@@ -15,6 +15,8 @@ class NetworkManager : public QObject
 public:
     explicit NetworkManager(QObject *parent = nullptr);
     void login(const QString &username, const QString &password);
+    void getSecurityQuestion(const QString &username);
+    void resetPassword(const QString &username, const QString &securityAnswer, const QString &newPassword);
     void getTableList();
     void cleanTable(int tableId);
     void getDishList();
@@ -29,6 +31,8 @@ public:
 
 signals:
     void loginFinished(bool success, const QString &message, const QString &username);
+    void securityQuestionFinished(bool success, const QString &message, const QString &question, const QString &username);
+    void passwordResetFinished(bool success, const QString &message);
     void tableListReceived(const QList<DiningTable> &tables);
     void tableListFailed(const QString &message);
     void tableCleaned(bool success, const QString &message);

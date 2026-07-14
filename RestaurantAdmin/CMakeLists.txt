@@ -14,6 +14,7 @@ qt_add_executable(RestaurantAdmin
     adminmainwindow.h
     adminmainwindow.ui
     login/adminloginwidget.h login/adminloginwidget.cpp login/adminloginwidget.ui
+    login/passwordrecoverydialog.h login/passwordrecoverydialog.cpp
     network/networkmanager.h network/networkmanager.cpp
     model/diningtable.h
     table/admintablewidget.h table/admintablewidget.cpp

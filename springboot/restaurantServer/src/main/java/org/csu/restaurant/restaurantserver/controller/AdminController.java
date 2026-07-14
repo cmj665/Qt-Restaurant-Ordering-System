@@ -27,4 +27,22 @@ public class AdminController {
         return result;
     }
 
+    @GetMapping("/security-question")
+    public Map<String, Object> securityQuestion(@RequestParam String username) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("username", username.trim());
+        result.put("question", adminService.getSecurityQuestion(username));
+        return result;
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String, Object> resetPassword(@RequestBody Map<String, String> request) {
+        adminService.resetPassword(request.get("username"), request.get("securityAnswer"), request.get("newPassword"));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("message", "密码重置成功，请使用新密码登录");
+        return result;
+    }
+
 }

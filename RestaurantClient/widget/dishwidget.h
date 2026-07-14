@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QPropertyAnimation>
 #include <QJsonObject>
+#include <QMap>
 
 class QResizeEvent;
 
@@ -64,6 +65,7 @@ private:
     QPushButton *cartConfirmButton = nullptr;
 
     QList<Dish> dishes;
+    QMap<int, QString> dishCategories;
     int selectedCategory = 0;
 
     //当前桌号
