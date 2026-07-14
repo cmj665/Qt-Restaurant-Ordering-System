@@ -7,6 +7,7 @@
 #include <QVariantAnimation>
 #include <QVBoxLayout>
 #include <QEasingCurve>
+#include <QTimer>
 #include <QtMath>
 
 class BlindBoxCanvas:public QWidget {
@@ -101,23 +102,53 @@ BlindBoxDialog::BlindBoxDialog(int chances,std::function<void()> action,QWidget*
     layout->addWidget(openButton);
 
     animation->setDuration(1700);animation->setStartValue(0.0);animation->setEndValue(1.0);animation->setEasingCurve(QEasingCurve::OutBack);connect(animation,&QVariantAnimation::valueChanged,this,[this](const QVariant&v){canvas->setProgress(v.toReal());});
+    connect(animation,&QVariantAnimation::finished,this,[this](){finishOpeningIfReady();});
     connect(openButton,&QPushButton::clicked,this,[this](){startOpening();});
 }
 void BlindBoxDialog::startOpening(){
-    openButton->setEnabled(false);result->setText("盲盒开启中...");
+    if(opening||remainingChances<=0)return;
+    opening=true;
+    rewardReady=false;
+    pendingReward.clear();
+    animation->stop();
+    openButton->setEnabled(false);result->setText("准备开启...");
     canvas->setProgress(0);
-    animation->start();
-    if(drawAction)drawAction();
+    QTimer::singleShot(90,this,[this](){
+        if(!opening)return;
+        result->setText("盲盒开启中...");
+        animation->setCurrentTime(0);
+        animation->start();
+        if(drawAction)drawAction();
+    });
 }
 
 void BlindBoxDialog::showReward(const QString&name,int remaining){
-    remainingChances=remaining;result->setText("🎉 恭喜获得："+name);
-    title->setText(QString("剩余 %1 次机会").arg(remaining));
-    openButton->setText(remaining>0?"再开一个":"机会已用完");
-    openButton->setEnabled(remaining>0);
+    pendingReward=name;
+    pendingRemaining=remaining;
+    rewardReady=true;
+    if(animation->state()!=QAbstractAnimation::Running)finishOpeningIfReady();
 }
 
 void BlindBoxDialog::showError(const QString&message){
+    animation->stop();
+    opening=false;
+    rewardReady=false;
+    canvas->setProgress(0);
     result->setText("开启失败："+message);
-    openButton->setEnabled(true);
+    openButton->setText("重新开启");
+    openButton->setEnabled(remainingChances>0);
+}
+
+void BlindBoxDialog::finishOpeningIfReady(){
+    if(!opening)return;
+    if(!rewardReady){
+        result->setText("正在揭晓奖励...");
+        return;
+    }
+    remainingChances=pendingRemaining;
+    result->setText("🎉 恭喜获得："+pendingReward);
+    title->setText(QString("剩余 %1 次机会").arg(remainingChances));
+    openButton->setText(remainingChances>0?"再开一个":"机会已用完");
+    opening=false;
+    openButton->setEnabled(remainingChances>0);
 }

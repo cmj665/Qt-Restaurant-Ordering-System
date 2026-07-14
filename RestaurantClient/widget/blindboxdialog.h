@@ -21,8 +21,13 @@ private:
     int remainingChances;
     std::function<void()> drawAction;
     QVariantAnimation *animation;
+    bool opening = false;
+    bool rewardReady = false;
+    QString pendingReward;
+    int pendingRemaining = 0;
 
 private:
     void startOpening();
+    void finishOpeningIfReady();
 };
 #endif

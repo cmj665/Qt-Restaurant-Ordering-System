@@ -5,9 +5,9 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QVBoxLayout>
-#include <QGraphicsDropShadowEffect>
 #include <QPainterPath>
 #include <QPainter>
+#include <QPixmapCache>
 
 DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     : QWidget(parent)
@@ -16,13 +16,14 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     , manager(new QNetworkAccessManager(this))
 {
     ui->setupUi(this);
-    setAttribute(Qt::WA_StyledBackground,true);
+    setAttribute(Qt::WA_StyledBackground,false);
+    setAttribute(Qt::WA_TranslucentBackground,true);
     setFixedSize(300, 388);
 
-    imageLabel = new QLabel("图片加载中...", this);
+    imageLabel = new QLabel(this);
     imageLabel->setFixedSize(298, 190);
     imageLabel->setAlignment(Qt::AlignCenter);
-    imageLabel->setStyleSheet("background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #ff8c42,stop:1 #ffd166);border-radius:22px 22px 0 0;color:white;font-size:18px;");
+    imageLabel->setStyleSheet("background:#f0ebe4;border-radius:16px;color:#999999;font-size:13px;");
     nameLabel = ui->nameLabel;
     priceLabel = ui->priceLabel;
     stockLabel = ui->stockLabel;
@@ -75,11 +76,7 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     setLayout(cardLayout);
     priceRow->setContentsMargins(16,0,16,0);
     salesRow->setContentsMargins(16,0,16,0);
-    setStyleSheet(
-        "DishCard{background:#ffffff;border:1px solid #ffffff;border-radius:24px;}"
-        "DishCard QLabel{background:transparent;border:none;}"
-    );
-    auto *shadow=new QGraphicsDropShadowEffect(this);shadow->setBlurRadius(30);shadow->setOffset(0,10);shadow->setColor(QColor(145,90,45,65));setGraphicsEffect(shadow);
+    setStyleSheet("QLabel{background:transparent;border:none;}");
 
     if(recommended)
     {
@@ -88,7 +85,7 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
         badge->setFixedSize(78, 30);
         badge->move(20, 20);
         badge->setStyleSheet(
-            "background:#ef4444;color:white;border:none;border-radius:15px;"
+            "background:#f97316;color:white;border:none;border-radius:15px;"
             "font-size:14px;font-weight:bold;padding:2px;"
         );
         badge->raise();
@@ -104,9 +101,29 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
             emit decreaseDish(m_dish.id);
     });
 
-    QNetworkReply *reply = manager->get(QNetworkRequest(
-        QUrl("http://localhost:8080/images/" + dish.picture)));
-    connect(reply, &QNetworkReply::finished, this, [this, reply](){
+    static const bool cacheConfigured=[](){QPixmapCache::setCacheLimit(65536);return true;}();
+    Q_UNUSED(cacheConfigured);
+    QString picturePath=dish.picture.trimmed();
+    const QUrl imageUrl=picturePath.startsWith("http://")||picturePath.startsWith("https://")
+        ? QUrl(picturePath)
+        : picturePath.startsWith("/images/")
+            ? QUrl("http://localhost:8080"+picturePath)
+            : QUrl("http://localhost:8080/images/"+picturePath);
+    const QString cacheKey="dish-card:"+imageUrl.toString();
+    QPixmap cachedPixmap;
+    if(!picturePath.isEmpty() && QPixmapCache::find(cacheKey,&cachedPixmap)){
+        imageLoaded=true;
+        imageLabel->setStyleSheet("background:transparent;border-radius:16px;");
+        imageLabel->setPixmap(cachedPixmap);
+        return;
+    }
+    if(picturePath.isEmpty()){
+        imageLabel->setText("暂无图片");
+        return;
+    }
+
+    QNetworkReply *reply = manager->get(QNetworkRequest(imageUrl));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, cacheKey](){
         QPixmap pixmap;
         if(reply->error() == QNetworkReply::NoError && pixmap.loadFromData(reply->readAll()))
         {
@@ -122,10 +139,17 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
             const int x=(size.width()-scaled.width())/2;
             const int y=(size.height()-scaled.height())/2;
             painter.drawPixmap(x,y,scaled);
+            imageLoaded = true;
+            QPixmapCache::insert(cacheKey,rounded);
+            imageLabel->setStyleSheet("background:transparent;border-radius:16px;");
             imageLabel->setPixmap(rounded);
         }
-        else
+        else {
             imageLabel->setText("暂无图片");
+            imageLabel->setStyleSheet(darkMode
+                ? "background:#333333;color:#808080;border-radius:16px;font-size:13px;"
+                : "background:#f0ebe4;color:#999999;border-radius:16px;font-size:13px;");
+        }
         reply->deleteLater();
     });
 }
@@ -140,17 +164,19 @@ void DishCard::setQuantity(int quantity)
 
 void DishCard::setDarkMode(bool enabled)
 {
+    darkMode = enabled;
     if(enabled){
-        setStyleSheet("DishCard{background:#505762;border:1px solid #69717d;border-radius:24px;} DishCard QLabel{background:transparent;border:none;}");
-        nameLabel->setStyleSheet("font-size:19px;font-weight:800;color:#f8fafc;background:transparent;");
-        priceLabel->setStyleSheet("font-size:24px;font-weight:900;color:#ff6b35;background:transparent;");
-        stockLabel->setStyleSheet("font-size:12px;color:#d1d5db;background:transparent;");
+        setStyleSheet("QLabel{background:transparent;border:none;}");
+        nameLabel->setStyleSheet("font-size:19px;font-weight:800;color:#f5f5f5;background:transparent;");
+        priceLabel->setStyleSheet("font-size:24px;font-weight:900;color:#f97316;background:transparent;");
+        stockLabel->setStyleSheet("font-size:12px;color:#b0b0b0;background:transparent;");
         soldLabel->setStyleSheet("font-size:12px;color:#fb923c;background:transparent;");
-        quantityLabel->setStyleSheet("font-size:18px;font-weight:bold;color:white;background:transparent;");
-        minusButton->setStyleSheet("QPushButton{background:#69717d;color:white;border:none;border-radius:10px;font-size:24px;} QPushButton:disabled{color:#9ca3af;}");
-        plusButton->setStyleSheet("QPushButton{background:#e64b35;color:white;border:none;border-radius:10px;font-size:24px;} QPushButton:disabled{background:#69717d;color:#9ca3af;}");
+        quantityLabel->setStyleSheet("font-size:18px;font-weight:bold;color:white;background:#3a3a3a;border-radius:9px;padding:3px 8px;");
+        const QString darkButtonStyle="QPushButton{background:#f97316;color:white;border:none;border-radius:10px;font-size:24px;font-weight:bold;} QPushButton:hover{background:#ea580c;} QPushButton:disabled{background:#3a3a3a;color:#808080;}";
+        minusButton->setStyleSheet(darkButtonStyle);
+        plusButton->setStyleSheet(darkButtonStyle);
     }else{
-        setStyleSheet("DishCard{background:#ffffff;border:1px solid #ffffff;border-radius:24px;} DishCard QLabel{background:transparent;border:none;}");
+        setStyleSheet("QLabel{background:transparent;border:none;}");
         nameLabel->setStyleSheet("font-size:19px;font-weight:800;color:#1f2937;background:transparent;");
         priceLabel->setStyleSheet("font-size:24px;font-weight:900;color:#f97316;background:transparent;");
         stockLabel->setStyleSheet("font-size:12px;color:#9ca3af;background:transparent;");
@@ -159,6 +185,21 @@ void DishCard::setDarkMode(bool enabled)
         const QString style="QPushButton{background:#f97316;color:white;border:none;border-radius:10px;font-size:24px;font-weight:bold;} QPushButton:hover{background:#ea580c;} QPushButton:disabled{background:#e5e7eb;color:#9ca3af;}";
         minusButton->setStyleSheet(style);plusButton->setStyleSheet(style);
     }
+    if(!imageLoaded)
+        imageLabel->setStyleSheet(enabled
+            ? "background:#333333;color:#808080;border-radius:16px;font-size:13px;"
+            : "background:#f0ebe4;color:#999999;border-radius:16px;font-size:13px;");
+    update();
+}
+
+void DishCard::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event);
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(QPen(QColor(darkMode ? "#3a3a3a" : "#ffffff"), 1));
+    painter.setBrush(QColor(darkMode ? "#2a2a2a" : "#ffffff"));
+    painter.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), darkMode?16:24, darkMode?16:24);
 }
 
 

@@ -51,16 +51,17 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
     top->addWidget(title); top->addStretch(); top->addWidget(addButton); top->addWidget(refreshButton);
 
     table->setColumnCount(10);
-    table->setHorizontalHeaderLabels({"图片","ID","菜品名称","分类","价格","库存","销量","状态","描述","操作"});
+    table->setHorizontalHeaderLabels({"图片","ID","菜名","分类","价格","库存","销量","状态","描述","操作"});
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     table->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Fixed);
-    table->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     table->horizontalHeader()->setSectionResizeMode(8,QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(9,QHeaderView::Fixed);
     table->horizontalHeader()->resizeSection(0,96);
     table->horizontalHeader()->resizeSection(1,58);
-    table->horizontalHeader()->resizeSection(9,255);
+    table->horizontalHeader()->resizeSection(2,76);
+    table->horizontalHeader()->resizeSection(9,190);
     table->horizontalHeader()->setFixedHeight(52);
     table->verticalHeader()->setVisible(false);
     table->verticalHeader()->setDefaultSectionSize(82);
@@ -178,7 +179,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
             if(deleted) for(int col=1;col<=8;++col) if(table->item(row,col)) table->item(row,col)->setForeground(QColor("#8b8b8b"));
 
             auto *actions=new QWidget(table); actions->setAttribute(Qt::WA_TranslucentBackground,true);
-            auto *box=new QHBoxLayout(actions); box->setContentsMargins(6,10,6,10); box->setSpacing(6);
+            auto *box=new QHBoxLayout(actions); box->setContentsMargins(3,10,3,10); box->setSpacing(8);
             auto *edit=new QPushButton("修改",actions); auto *stockButton=new QPushButton("调库存",actions);
             auto *stateButton=new QPushButton(deleted?"上架":"下架",actions);
             edit->setEnabled(!deleted); stockButton->setEnabled(!deleted);
@@ -187,7 +188,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
                 actionButton->setCursor(actionButton->isEnabled()?Qt::PointingHandCursor:Qt::ArrowCursor);
                 actionButton->setFixedHeight(34);
             }
-            edit->setMinimumWidth(58); stockButton->setMinimumWidth(72); stateButton->setMinimumWidth(58);
+            edit->setFixedWidth(48); stockButton->setFixedWidth(62); stateButton->setFixedWidth(48);
             edit->setStyleSheet(
                 "QPushButton{outline:none;background:transparent;color:#dc7c2b;border:0;border-radius:16px;font-size:14px;font-weight:700;}"
                 "QPushButton:hover{background:#fff0df;} QPushButton:disabled{color:#b9b9b9;}"

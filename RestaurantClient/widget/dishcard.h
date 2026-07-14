@@ -9,6 +9,7 @@
 
 namespace Ui { class DishCard; }
 class QResizeEvent;
+class QPaintEvent;
 
 class DishCard : public QWidget
 {
@@ -24,6 +25,9 @@ signals:
     void increaseDish(const Dish &dish);
     void decreaseDish(int dishId);
 
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
 private:
     Ui::DishCard *ui;
     Dish m_dish;
@@ -37,6 +41,8 @@ private:
     QPushButton *minusButton;
     QPushButton *plusButton;
     QNetworkAccessManager *manager;
+    bool darkMode = false;
+    bool imageLoaded = false;
 };
 
 #endif // DISHCARD_H

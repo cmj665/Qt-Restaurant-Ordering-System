@@ -346,7 +346,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
             button->setChecked(selectedCategory == categoryId);
             button->setMinimumSize(128, 48);
             button->setStyleSheet(darkMode ?
-                "QPushButton{background:transparent;color:#d7e0ea;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#26364a;} QPushButton:checked{background:#e64b35;color:white;font-weight:900;}" :
+                "QPushButton{background:#2a2a2a;color:#b0b0b0;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#333333;color:#e5e5e5;} QPushButton:checked{background:#f97316;color:white;font-weight:900;}" :
                 "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;text-align:center;}"
                 "QPushButton:hover{background:rgba(255,255,255,35);color:white;}"
                 "QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}"
@@ -601,7 +601,11 @@ void DishWidget::renderDishes()
     }
 
     int visibleIndex = 0;
-    auto addCard = [this, &visibleIndex](const Dish &dish, bool recommended){
+    QSet<int> renderedDishIds;
+    auto addCard = [this, &visibleIndex, &renderedDishIds](const Dish &dish, bool recommended){
+        if(renderedDishIds.contains(dish.id))
+            return;
+        renderedDishIds.insert(dish.id);
         DishCard *card = new DishCard(dish, container, recommended);
         card->setDarkMode(darkMode);
         card->setQuantity(cartWidget->quantityForDish(dish.id));
@@ -631,7 +635,7 @@ void DishWidget::renderDishes()
         return;
     }
 
-    // “全部”页面先复制前三名作为本店推荐，后面仍保留完整菜品列表。
+    // “全部”页面把前三名排在前面并标记为热销，后续列表按菜品 ID 自动去重。
     if(selectedCategory == 0)
     {
         int recommendedCount = 0;
@@ -665,20 +669,23 @@ void DishWidget::applyTheme()
 {
     themeButton->setText(darkMode?"白天模式":"夜间模式");
     QWidget *top=findChild<QWidget*>("topBar");
+    if(top)
+        if(auto *shadow=qobject_cast<QGraphicsDropShadowEffect*>(top->graphicsEffect()))
+            shadow->setColor(darkMode ? QColor(0,0,0,95) : QColor(126,84,46,45));
     if(darkMode){
-        setStyleSheet("DishWidget{background:#101419;}");
-        if(top)top->setStyleSheet("QWidget#topBar{background:#3b414b;border:none;border-radius:20px;}");
-        titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#f8fafc;padding:8px 20px;background:transparent;");
-        categoryWidget->setStyleSheet("QWidget#categoryRail{background:#111820;border-radius:20px;}");
-        scrollArea->setStyleSheet("QScrollArea{background:#171c23;border:none;border-radius:20px;} QScrollArea>QWidget>QWidget{background:#171c23;border-radius:20px;} QScrollBar:vertical{width:0px;}");
-        scrollArea->viewport()->setStyleSheet("background:#171c23;border:none;border-radius:20px;");
-        container->setStyleSheet("background:#171c23;");
-        cartSummaryBar->setStyleSheet("QWidget#cartSummaryBar{background:#111820;border:1px solid #303844;border-radius:20px;}");
-        cartCountLabel->setStyleSheet("color:#cbd5e1;font-size:15px;");
-        cartTotalLabel->setStyleSheet("color:white;font-size:25px;font-weight:900;");
-        themeButton->setStyleSheet("QPushButton{background:#555d68;color:white;border:none;border-radius:12px;padding:8px 18px;}");
-        changeTableButton->setStyleSheet("QPushButton{background:#555d68;color:#ffd166;border:1px solid #69717d;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#626b77;}");
-        backTableButton->setStyleSheet("QPushButton{background:#474e58;color:#f1f5f9;border:1px solid #626a76;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#555d68;}");
+        setStyleSheet("DishWidget{background:#1a1a1a;}");
+        if(top)top->setStyleSheet("QWidget#topBar{background:#2a2a2a;border:1px solid #353535;border-radius:20px;}");
+        titleLabel->setStyleSheet("font-size:25px;font-weight:800;color:#ffffff;padding:8px 20px;background:transparent;");
+        categoryWidget->setStyleSheet("QWidget#categoryRail{background:#121212;border:1px solid #242424;border-radius:20px;}");
+        scrollArea->setStyleSheet("QScrollArea{background:#1e1e1e;border:none;border-radius:20px;} QScrollArea>QWidget>QWidget{background:#1e1e1e;border-radius:20px;} QScrollBar:vertical{width:0px;}");
+        scrollArea->viewport()->setStyleSheet("background:#1e1e1e;border:none;border-radius:20px;");
+        container->setStyleSheet("background:#1e1e1e;");
+        cartSummaryBar->setStyleSheet("QWidget#cartSummaryBar{background:#181818;border:1px solid #333333;border-radius:20px;}");
+        cartCountLabel->setStyleSheet("color:#b0b0b0;font-size:15px;");
+        cartTotalLabel->setStyleSheet("color:#f97316;font-size:25px;font-weight:900;");
+        themeButton->setStyleSheet("QPushButton{background:#2a2a2a;color:white;border:1px solid #f97316;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#333333;}");
+        changeTableButton->setStyleSheet("QPushButton{background:#2a2a2a;color:white;border:1px solid #f97316;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#333333;}");
+        backTableButton->setStyleSheet("QPushButton{background:#2a2a2a;color:#f5f5f5;border:1px solid #f97316;border-radius:12px;padding:8px 18px;} QPushButton:hover{background:#333333;color:#f97316;}");
     }else{
         setStyleSheet("DishWidget{background:#fffaf0;}");
         if(top)top->setStyleSheet("QWidget#topBar{background:white;border:none;border-radius:20px;}");
@@ -696,7 +703,7 @@ void DishWidget::applyTheme()
     }
     for(QPushButton *button:categoryWidget->findChildren<QPushButton*>()){
         button->setStyleSheet(darkMode?
-            "QPushButton{background:transparent;color:#d7e0ea;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#26364a;} QPushButton:checked{background:#e64b35;color:white;font-weight:900;}":
+            "QPushButton{background:#2a2a2a;color:#b0b0b0;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#333333;color:#e5e5e5;} QPushButton:checked{background:#f97316;color:white;font-weight:900;}":
             "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:rgba(255,255,255,35);} QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}");
     }
     for(DishCard *card:container->findChildren<DishCard*>())card->setDarkMode(darkMode);
