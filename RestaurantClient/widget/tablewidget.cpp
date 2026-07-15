@@ -15,7 +15,6 @@
 #include <QGraphicsDropShadowEffect>
 #include <QRadialGradient>
 #include <QFont>
-#include <QPainterPath>
 
 class TableStatusButton final : public QPushButton
 {
@@ -29,9 +28,8 @@ public:
     void setTableData(const DiningTable &value){data=value;update();}
 protected:
     bool hitButton(const QPoint &position) const override {
-        QPainterPath path;
-        path.addRoundedRect(rect().adjusted(3,3,-3,-3), 28, 28);
-        return path.contains(position);
+        // 视觉仍保持圆角，但整张桌台卡片都应响应点击，避免顶部圆角区域出现点击盲区。
+        return rect().contains(position);
     }
     void paintEvent(QPaintEvent *) override {
         QPainter painter(this);painter.setRenderHint(QPainter::Antialiasing,true);
@@ -115,6 +113,14 @@ TableWidget::TableWidget(QWidget *parent)
     mainLayout->addWidget(graphicsView, 1);
     mainLayout->addWidget(legendWidget);
     setLayout(mainLayout);
+
+    // .ui 中遗留的 tableContainer 已被上面的 QGraphicsView 取代。
+    // 它采用绝对定位覆盖在左上角，会透明地截获第一张桌台卡片上半部分的鼠标事件。
+    ui->tableContainer->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    ui->tableContainer->hide();
+    ui->widget->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    ui->widget->lower();
+    ui->titleLabel->show();
 
     connect(refreshButton, &QPushButton::clicked, this, &TableWidget::refreshTables);
     connect(network, &NetworkManager::tableListReceived, this, &TableWidget::showTables);

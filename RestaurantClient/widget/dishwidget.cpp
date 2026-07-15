@@ -24,13 +24,16 @@
 #include <QColor>
 #include <QResizeEvent>
 #include <QEasingCurve>
+#include <QScrollBar>
+#include <QTimer>
+#include <QStringList>
 
 namespace {
 int categoryPriority(const QString &name)
 {
     const QString normalized = name.trimmed();
-    if(normalized.contains("主食")) return 0;
-    if(normalized.contains("小吃")) return 1;
+    if(normalized.contains("鱼锅")) return 0;
+    if(normalized.contains("热菜")) return 1;
     if(normalized.contains("甜品") || normalized.contains("甜点")) return 2;
     if(normalized.contains("饮料") || normalized.contains("饮品")) return 3;
     return 100;
@@ -39,8 +42,8 @@ int categoryPriority(const QString &name)
 QString categoryDisplayName(const QString &name)
 {
     const int priority = categoryPriority(name);
-    if(priority == 0) return "主食";
-    if(priority == 1) return "小吃";
+    if(priority == 0) return "鱼锅";
+    if(priority == 1) return "热菜";
     if(priority == 2) return "甜品";
     if(priority == 3) return "饮料";
     return name;
@@ -157,7 +160,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     // container->setMinimumWidth(1000);
 
     layout->setSpacing(24);
-    layout->setContentsMargins(24, 24, 24, 120);
+    layout->setContentsMargins(24, 24, 24, 24);
 
     layout->setAlignment(Qt::AlignTop);
 
@@ -188,6 +191,9 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     mainLayout->setContentsMargins(18,18,18,18);
 
     mainLayout->setSpacing(15);
+
+    connect(scrollArea->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, [this](){ updateCurrentCategory(); });
 
 
     //---------------创建购物车窗口----------
@@ -363,41 +369,40 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
             delete item;
         }
 
-        auto addCategoryButton = [this](int categoryId, const QString &name){
-            QPushButton *button = new QPushButton(name, categoryWidget);
-            button->setCheckable(true);
-            button->setChecked(selectedCategory == categoryId);
-            button->setMinimumSize(128, 48);
-            button->setStyleSheet(darkMode ?
-                "QPushButton{background:#2a2a2a;color:#b0b0b0;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#333333;color:#e5e5e5;} QPushButton:checked{background:#f97316;color:white;font-weight:900;}" :
-                "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;text-align:center;}"
-                "QPushButton:hover{background:rgba(255,255,255,35);color:white;}"
-                "QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}"
-            );
-            connect(button, &QPushButton::clicked, this, [this, categoryId](){
-                selectedCategory = categoryId;
-                for(QPushButton *other : categoryWidget->findChildren<QPushButton *>())
-                    other->setChecked(other->property("categoryId").toInt() == categoryId);
-                renderDishes();
-            });
-            button->setProperty("categoryId", categoryId);
-            categoryLayout->addWidget(button);
-        };
-
-        addCategoryButton(-1, "🔥 热销榜");
-        addCategoryButton(0, "全部");
+        QStringList sectionNames{"热销"};
         QList<int> categoryIds = categories.keys();
         std::sort(categoryIds.begin(), categoryIds.end(), [&categories](int leftId, int rightId){
             const int leftPriority = categoryPriority(categories.value(leftId));
             const int rightPriority = categoryPriority(categories.value(rightId));
-            if(leftPriority != rightPriority)
-                return leftPriority < rightPriority;
-            return leftId < rightId;
+            return leftPriority == rightPriority ? leftId < rightId : leftPriority < rightPriority;
         });
         for(int categoryId : categoryIds)
-            addCategoryButton(categoryId, categoryDisplayName(categories.value(categoryId)));
+            sectionNames.append(categoryDisplayName(categories.value(categoryId)));
+
+        for(const QString &sectionName : sectionNames)
+        {
+            QPushButton *button = new QPushButton(sectionName, categoryWidget);
+            button->setCheckable(true);
+            button->setAutoExclusive(true);
+            button->setProperty("sectionName", sectionName);
+            button->setMinimumSize(128, 48);
+            button->setCursor(Qt::PointingHandCursor);
+            connect(button, &QPushButton::clicked, this, [this, sectionName](){
+                for(const auto &section : sectionMarkers)
+                {
+                    if(section.second == sectionName && section.first)
+                    {
+                        // 所有分类标题统一停在视口顶部下方 12px；底部占位保证最后一项也能到达。
+                        scrollArea->verticalScrollBar()->setValue(qMax(0, section.first->y() - 12));
+                        break;
+                    }
+                }
+            });
+            categoryLayout->addWidget(button);
+        }
         categoryLayout->addStretch();
         renderDishes();
+        applyTheme();
     });
 
 
@@ -612,6 +617,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
 void DishWidget::renderDishes()
 {
+    sectionMarkers.clear();
     while(layout->count() > 0)
     {
         QLayoutItem *item = layout->takeAt(0);
@@ -629,17 +635,27 @@ void DishWidget::renderDishes()
     QSet<int> hotDishIds;
     for(const Dish &dish : ranking)
     {
-        if(dish.soldCount <= 0 || hotDishIds.size() >= 10)
+        if(dish.soldCount <= 0 || hotDishIds.size() >= 5)
             break;
         hotDishIds.insert(dish.id);
     }
 
-    int visibleIndex = 0;
-    QSet<int> renderedDishIds;
-    auto addCard = [this, &visibleIndex, &renderedDishIds](const Dish &dish, bool recommended){
-        if(renderedDishIds.contains(dish.id))
-            return;
-        renderedDishIds.insert(dish.id);
+    int row = 0;
+    int column = 0;
+    auto addSection = [this, &row, &column](const QString &title){
+        if(column != 0)
+            ++row;
+        column = 0;
+        QLabel *heading = new QLabel(title, container);
+        heading->setObjectName("dishSectionHeading");
+        heading->setMinimumHeight(58);
+        heading->setStyleSheet(darkMode
+            ? "QLabel{color:#f5f5f5;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #f97316;}"
+            : "QLabel{color:#7c2d12;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #fed7aa;}");
+        layout->addWidget(heading, row++, 0, 1, 3);
+        sectionMarkers.append(qMakePair(static_cast<QWidget *>(heading), title));
+    };
+    auto addCard = [this, &row, &column](const Dish &dish, bool recommended){
         DishCard *card = new DishCard(dish, container, recommended);
         card->setDarkMode(darkMode);
         card->setQuantity(cartWidget->quantityForDish(dish.id));
@@ -652,53 +668,68 @@ void DishWidget::renderDishes()
             if(changedDishId == dishId)
                 card->setQuantity(quantity);
         });
-        layout->addWidget(card, visibleIndex / 3, visibleIndex % 3, Qt::AlignTop | Qt::AlignHCenter);
-        ++visibleIndex;
+        layout->addWidget(card, row, column, Qt::AlignTop | Qt::AlignHCenter);
+        if(++column == 3)
+        {
+            column = 0;
+            ++row;
+        }
     };
 
-    if(selectedCategory == -1)
+    addSection("热销");
+    int hotCount = 0;
+    for(const Dish &dish : ranking)
     {
-        int shown = 0;
-        for(const Dish &dish : ranking)
-        {
-            if(dish.soldCount <= 0 || shown >= 10)
-                break;
-            addCard(dish, true);
-            ++shown;
-        }
-        return;
+        if(dish.soldCount <= 0 || hotCount >= 5)
+            break;
+        addCard(dish, true);
+        ++hotCount;
     }
 
-    // “全部”页面把前三名排在前面并标记为热销，后续列表按菜品 ID 自动去重。
-    if(selectedCategory == 0)
-    {
-        int recommendedCount = 0;
-        for(const Dish &dish : ranking)
-        {
-            if(dish.soldCount <= 0 || recommendedCount >= 3)
-                break;
-            addCard(dish, true);
-            ++recommendedCount;
-        }
-    }
-
-    QList<Dish> orderedDishes = dishes;
-    std::stable_sort(orderedDishes.begin(), orderedDishes.end(), [this](const Dish &left, const Dish &right){
-        const int leftPriority = categoryPriority(dishCategories.value(left.catId));
-        const int rightPriority = categoryPriority(dishCategories.value(right.catId));
+    QList<int> categoryIds = dishCategories.keys();
+    std::sort(categoryIds.begin(), categoryIds.end(), [this](int leftId, int rightId){
+        const int leftPriority = categoryPriority(dishCategories.value(leftId));
+        const int rightPriority = categoryPriority(dishCategories.value(rightId));
         if(leftPriority != rightPriority)
             return leftPriority < rightPriority;
-        if(left.catId != right.catId)
-            return left.catId < right.catId;
-        return left.id < right.id;
+        return leftId < rightId;
     });
 
-    for(const Dish &dish : orderedDishes)
+    for(int categoryId : categoryIds)
     {
-        if(selectedCategory > 0 && dish.catId != selectedCategory)
+        QList<Dish> categoryDishes;
+        for(const Dish &dish : dishes)
+            if(dish.catId == categoryId)
+                categoryDishes.append(dish);
+        if(categoryDishes.isEmpty())
             continue;
-        addCard(dish, hotDishIds.contains(dish.id));
+        std::sort(categoryDishes.begin(), categoryDishes.end(), [](const Dish &left, const Dish &right){
+            return left.id < right.id;
+        });
+        addSection(categoryDisplayName(dishCategories.value(categoryId)));
+        for(const Dish &dish : categoryDishes)
+            addCard(dish, hotDishIds.contains(dish.id));
     }
+
+    QTimer::singleShot(0, this, [this](){ updateCurrentCategory(); });
+}
+
+void DishWidget::updateCurrentCategory()
+{
+    if(sectionMarkers.isEmpty())
+        return;
+
+    const int viewportTop = scrollArea->verticalScrollBar()->value() + 90;
+    QString current = sectionMarkers.first().second;
+    for(const auto &section : sectionMarkers)
+    {
+        if(section.first && section.first->y() <= viewportTop)
+            current = section.second;
+        else
+            break;
+    }
+    for(QPushButton *button : categoryWidget->findChildren<QPushButton *>())
+        button->setChecked(button->property("sectionName").toString() == current);
 }
 
 QRect DishWidget::cartDrawerGeometry(bool opened) const
@@ -750,6 +781,12 @@ void DishWidget::applyTheme()
         button->setStyleSheet(darkMode?
             "QPushButton{background:#2a2a2a;color:#b0b0b0;border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:#333333;color:#e5e5e5;} QPushButton:checked{background:#f97316;color:white;font-weight:900;}":
             "QPushButton{background:transparent;color:rgba(255,255,255,210);border:none;border-radius:16px;padding:12px;font-size:16px;font-weight:700;} QPushButton:hover{background:rgba(255,255,255,35);} QPushButton:checked{background:#ffd166;color:#7c2d12;font-weight:900;}");
+    }
+    for(QLabel *heading : container->findChildren<QLabel *>("dishSectionHeading"))
+    {
+        heading->setStyleSheet(darkMode
+            ? "QLabel{color:#ffffff;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #f97316;}"
+            : "QLabel{color:#7c2d12;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #fed7aa;}");
     }
     for(DishCard *card:container->findChildren<DishCard*>())card->setDarkMode(darkMode);
     cartWidget->setDarkMode(darkMode);

@@ -16,6 +16,7 @@
 #include <QPropertyAnimation>
 #include <QJsonObject>
 #include <QMap>
+#include <QVector>
 
 class QResizeEvent;
 
@@ -54,6 +55,7 @@ private:
     QGridLayout *layout;
     QVBoxLayout *categoryLayout;
     QWidget *categoryWidget;
+    QVector<QPair<QWidget *, QString>> sectionMarkers;
 
     CartWidget *cartWidget;
     QPushButton *cartBackdrop = nullptr;
@@ -85,6 +87,7 @@ private:
     void openPaymentWindow();
     void createPdfAndPrintReceipt(const QJsonObject &receipt, int payType);
     void renderDishes();
+    void updateCurrentCategory();
     void openCartDrawer();
     void closeCartDrawer();
     QRect cartDrawerGeometry(bool opened) const;
