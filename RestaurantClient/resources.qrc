@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/cover">
+        <file alias="mascot.png">assets/cover/mascot.png</file>
+        <file alias="brand.png">assets/cover/brand.png</file>
+        <file alias="fish-pot.png">assets/cover/fish-pot.png</file>
+        <file alias="chef.png">assets/cover/chef.png</file>
+        <file alias="receipt.png">assets/cover/receipt.png</file>
+        <file alias="cart.png">assets/cover/cart.png</file>
+        <file alias="payment.png">assets/cover/payment.png</file>
+    </qresource>
+</RCC>

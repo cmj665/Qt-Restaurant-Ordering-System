@@ -23,6 +23,7 @@ public:
     ~MainWindow() override;
 
 private:
+    void showCoverPage();
     void showTablePage();
     void showDishPage(int tableId);
 

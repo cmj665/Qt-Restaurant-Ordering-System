@@ -160,7 +160,9 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     // container->setMinimumWidth(1000);
 
     layout->setSpacing(24);
-    layout->setContentsMargins(24, 24, 24, 24);
+    // 底部确认菜品栏悬浮在滚动区上方；预留足够空间，保证最后一行
+    // 菜品可以完整滚动到确认栏之上，底部的加减按钮也能正常点击。
+    layout->setContentsMargins(24, 24, 24, 150);
 
     layout->setAlignment(Qt::AlignTop);
 

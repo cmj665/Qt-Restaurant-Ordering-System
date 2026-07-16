@@ -3,6 +3,7 @@
 #include "ui_mainwindow.h"
 #include "widget/dishwidget.h"
 #include "widget/tablewidget.h"
+#include "widget/coverwidget.h"
 
 #include <QDebug>
 
@@ -13,11 +14,21 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // resize(1200,800);
+    setWindowTitle(QStringLiteral("大丰收 · 平板点餐系统"));
+    ui->menubar->hide();
+    ui->statusbar->hide();
     setMinimumSize(1200,800);
 
     //进入程序默认显示桌台
-    showTablePage();
+    showCoverPage();
 
+}
+
+void MainWindow::showCoverPage()
+{
+    auto *cover = new CoverWidget(this);
+    setCentralWidget(cover);
+    connect(cover, &CoverWidget::startOrdering, this, &MainWindow::showTablePage);
 }
 
 void MainWindow::showTablePage(){
