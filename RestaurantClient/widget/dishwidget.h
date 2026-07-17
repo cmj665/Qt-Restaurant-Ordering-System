@@ -28,6 +28,12 @@ namespace Ui {
 class DishWidget;
 }
 
+/**
+ * @brief 点餐业务主界面。
+ *
+ * 协调菜品分类、购物车、订单详情、支付、票据和奖励抽取等子界面；具体网络
+ * 通信由 NetworkManager 完成，本类负责用户流程和界面状态的一致性。
+ */
 class DishWidget : public QWidget
 {
     Q_OBJECT
@@ -85,6 +91,7 @@ private:
     QPointer<OrderDetailWidget> activeDetailWidget;
 
     void openPaymentWindow();
+    /** 根据服务端订单快照生成票据；payType 仅用于展示支付渠道。 */
     void createPdfAndPrintReceipt(const QJsonObject &receipt, int payType);
     void renderDishes();
     void updateCurrentCategory();

@@ -20,6 +20,12 @@ import org.csu.restaurant.restaurantserver.dto.OrderItemDTO;
 
 @RestController
 @RequestMapping("/order")
+/**
+ * 点餐流程接口。
+ *
+ * <p>写入操作先进入订单队列，客户端通过任务编号查询处理结果；订单详情和
+ * 支付前校验则直接读取当前数据库快照。</p>
+ */
 public class OrderController {
 
     @Autowired
@@ -29,6 +35,7 @@ public class OrderController {
     private OrderQueueService orderQueueService;
 
     @PostMapping("/submit")
+    /** 接收下单请求并立即返回异步任务编号，避免 HTTP 线程等待库存事务。 */
     public ResponseEntity<OrderTaskDTO> submit(@RequestBody OrderDTO orderDTO){
         return ResponseEntity.accepted().body(orderQueueService.enqueue(orderDTO));
     }
@@ -70,6 +77,7 @@ public class OrderController {
     }
 
     @GetMapping("/canPay/{id}")
+    /** 校验订单是否存在、尚未支付且所有菜品均已处理完成。 */
     public Map<String,Object> canPay(
             @PathVariable Integer id
     ){

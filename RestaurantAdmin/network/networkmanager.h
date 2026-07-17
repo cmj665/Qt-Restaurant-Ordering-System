@@ -9,6 +9,12 @@
 
 class QNetworkAccessManager;
 
+/**
+ * @brief 管理端访问后端 REST API 的统一入口。
+ *
+ * 封装登录、桌台、菜品和出餐管理请求，并以 Qt 信号反馈结果，使各管理页面
+ * 只处理展示和交互逻辑，不直接拼接 URL 或解析网络响应。
+ */
 class NetworkManager : public QObject
 {
     Q_OBJECT
@@ -45,6 +51,7 @@ signals:
 private:
     QNetworkAccessManager *manager;
     const QString baseUrl = "http://localhost:8080";
+    /** add/update 共用的菜品 JSON 序列化与请求发送逻辑。 */
     void sendDish(const QString &path, const Dish &dish);
 };
 

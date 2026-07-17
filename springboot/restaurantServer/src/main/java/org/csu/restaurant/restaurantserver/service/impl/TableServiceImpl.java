@@ -15,12 +15,12 @@ public class TableServiceImpl implements TableService{
     @Autowired
     private TableMapper tableMapper;
 
-
     @Override
     public List<DiningTable> findAll(){
         return tableMapper.findAll();
     }
 
+    //规定桌台只能0->1->2->3->0
     @Override
     public void changeStatus(Integer id,Integer status){
         if (id == null || status == null || status < 0 || status > 3) {

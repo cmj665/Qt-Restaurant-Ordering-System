@@ -40,6 +40,7 @@ public class AdminServiceImpl implements AdminService {
 
     }
 
+    //查询密保问题
     @Override
     public String getSecurityQuestion(String username) {
         Admin admin = requireAdmin(username);
@@ -50,6 +51,7 @@ public class AdminServiceImpl implements AdminService {
         return admin.getSecurityQuestion();
     }
 
+    //验证答案并重置密码
     @Override
     public void resetPassword(String username, String securityAnswer, String newPassword) {
         Admin admin = requireAdmin(username);
@@ -74,9 +76,11 @@ public class AdminServiceImpl implements AdminService {
         return admin;
     }
 
+    //密保答案加密
     private String hashAnswer(String answer) {
         try {
             String normalized = answer.trim().toLowerCase(Locale.ROOT);
+            //使用 SHA-256 计算哈希值
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(normalized.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {

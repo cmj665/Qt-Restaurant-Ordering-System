@@ -10,6 +10,7 @@
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
+// 主窗口初始化：设置窗口基础属性，并首先展示管理员登录页。
 AdminMainWindow::AdminMainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::AdminMainWindow)
@@ -22,6 +23,7 @@ AdminMainWindow::AdminMainWindow(QWidget *parent)
 
 void AdminMainWindow::showLoginPage()
 {
+    // 登录模块：把登录组件设为中央页面，登录成功后进入管理工作台。
     auto *login = new AdminLoginWidget(this);
     setCentralWidget(login);
     connect(login, &AdminLoginWidget::loginSucceeded, this, &AdminMainWindow::showTablePage);
@@ -29,6 +31,7 @@ void AdminMainWindow::showLoginPage()
 
 void AdminMainWindow::showTablePage(const QString &username)
 {
+    // 工作台外观：创建管理端页面背景和顶部胶囊式导航栏。
     auto *page = new QWidget(this);
     page->setObjectName("adminWorkspace");
     page->setAttribute(Qt::WA_StyledBackground, true);
@@ -43,6 +46,7 @@ void AdminMainWindow::showTablePage(const QString &username)
     navigationLayout->setContentsMargins(7, 7, 7, 7);
     navigationLayout->setSpacing(9);
 
+    // 导航按钮：使用互斥按钮组在桌台、菜品和出餐模块之间切换。
     auto *buttonGroup = new QButtonGroup(page);
     buttonGroup->setExclusive(true);
     const QString navigationStyle =
@@ -69,6 +73,7 @@ void AdminMainWindow::showTablePage(const QString &username)
     }
     tableButton->setChecked(true);
 
+    // 业务页面：创建三个管理模块，并放入堆叠页面统一管理。
     auto *stack = new QStackedWidget(page);
     stack->setObjectName("adminPageStack");
     stack->setStyleSheet("QStackedWidget#adminPageStack{background:transparent;border:0;}");
@@ -81,6 +86,7 @@ void AdminMainWindow::showTablePage(const QString &username)
 
     connect(buttonGroup, &QButtonGroup::idClicked, stack, &QStackedWidget::setCurrentIndex);
 
+    // 总体布局与退出登录：组合导航和内容区，并允许返回登录页。
     auto *layout = new QVBoxLayout(page);
     layout->setContentsMargins(28, 18, 28, 0);
     layout->setSpacing(0);

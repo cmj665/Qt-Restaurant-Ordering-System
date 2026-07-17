@@ -194,6 +194,7 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
     mainLayout->setSpacing(15);
 
+    //--监听点餐页面滚动---
     connect(scrollArea->verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this](){ updateCurrentCategory(); });
 
@@ -480,30 +481,6 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
 
 
 
-        // //打开支付界面
-        // PayWidget *pay = new PayWidget(orderId,money,this);
-        // pay->setAttribute(Qt::WA_DeleteOnClose);
-
-        // pay->setWindowTitle("订单支付");
-
-        // pay->resize(450,350);
-        // pay->show();
-        // pay->raise();
-        // pay->activateWindow();
-
-    //     //支付成功
-    //     connect(pay,
-    //             &PayWidget::paySuccess,
-    //             this,
-    //             [this](){
-
-    //             QMessageBox::information(this,"支付成功","订单支付完成");
-    //              });
-    //                 //这里不用再改状态了，因为后端springboot已经修改了
-    //     }
-    // );
-
-
     //查看订单详情
     connect(network, &NetworkManager::checkoutReady, this,
             [this](bool success, int orderId, double money, const QString &message){
@@ -617,23 +594,30 @@ DishWidget::DishWidget(int tableId,QWidget *parent)
     applyTheme();
 }
 
+//刷新菜品大列表页面，分热销区 + 各类别菜品区
 void DishWidget::renderDishes()
 {
+    //清空旧分区标记
     sectionMarkers.clear();
+    // 清空布局里所有旧控件（全部删除）
+    //循环清空网格布局所有旧菜品卡片、旧分区标题，防止新旧重叠
     while(layout->count() > 0)
     {
-        QLayoutItem *item = layout->takeAt(0);
-        delete item->widget();
-        delete item;
+        QLayoutItem *item = layout->takeAt(0);  // 取出布局第一个条目
+        delete item->widget();  //销毁卡片/标题控件
+        delete item;    // 销毁布局条目本身
     }
 
+    //-----------筛选热销-------------------
+    // 按销量从高到低排序全部菜品
     QList<Dish> ranking = dishes;
     std::sort(ranking.begin(), ranking.end(), [](const Dish &left, const Dish &right){
         if(left.soldCount != right.soldCount)
-            return left.soldCount > right.soldCount;
-        return left.id < right.id;
+            return left.soldCount > right.soldCount;   // 销量高排前面
+        return left.id < right.id;  // 销量相同按菜品ID升序
     });
 
+    // 选出前 5 个热销菜品 ID 存入集合
     QSet<int> hotDishIds;
     for(const Dish &dish : ranking)
     {
@@ -642,34 +626,48 @@ void DishWidget::renderDishes()
         hotDishIds.insert(dish.id);
     }
 
+    // 行列计数器初始化（3 列网格布局
     int row = 0;
     int column = 0;
+
+    //内部 lambda：addSection 创建分区大标题，生成大类标题
     auto addSection = [this, &row, &column](const QString &title){
         if(column != 0)
             ++row;
         column = 0;
+        //创建标题标签
         QLabel *heading = new QLabel(title, container);
         heading->setObjectName("dishSectionHeading");
         heading->setMinimumHeight(58);
+        //明暗两套标题样式
         heading->setStyleSheet(darkMode
             ? "QLabel{color:#f5f5f5;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #f97316;}"
             : "QLabel{color:#7c2d12;font-size:25px;font-weight:900;padding:12px 8px;border-bottom:2px solid #fed7aa;}");
+        // 网格布局添加标题：当前row，0列，占1行3列整行宽度
         layout->addWidget(heading, row++, 0, 1, 3);
+        // 记录分区标题，供后续切换分类使用
         sectionMarkers.append(qMakePair(static_cast<QWidget *>(heading), title));
     };
+
+    //内部 lambda：addCard 创建一张菜品卡片并放入网格
     auto addCard = [this, &row, &column](const Dish &dish, bool recommended){
+        // 创建菜品卡片，recommended=true显示热销角标
         DishCard *card = new DishCard(dish, container, recommended);
         card->setDarkMode(darkMode);
+        // 同步购物车当前选购份数给卡片
         card->setQuantity(cartWidget->quantityForDish(dish.id));
+        // 卡片加号 → 调用购物车addDish加菜
         connect(card, &DishCard::increaseDish, this, [this](const Dish &selectedDish){
             cartWidget->addDish(selectedDish);
         });
+         // 卡片减号 → 购物车减一份
         connect(card, &DishCard::decreaseDish, cartWidget, &CartWidget::decreaseDish);
         connect(cartWidget, &CartWidget::quantityChanged, card,
                 [card, dishId = dish.id](int changedDishId, int quantity){
             if(changedDishId == dishId)
                 card->setQuantity(quantity);
         });
+        // 购物车份数变化时，同步更新卡片数字与按钮状态
         layout->addWidget(card, row, column, Qt::AlignTop | Qt::AlignHCenter);
         if(++column == 3)
         {
@@ -678,6 +676,7 @@ void DishWidget::renderDishes()
         }
     };
 
+    // 购物车份数变化时，同步更新卡片数字与按钮状态
     addSection("热销");
     int hotCount = 0;
     for(const Dish &dish : ranking)
@@ -688,15 +687,17 @@ void DishWidget::renderDishes()
         ++hotCount;
     }
 
+    //获取所有分类 ID，按优先级排序分类
     QList<int> categoryIds = dishCategories.keys();
     std::sort(categoryIds.begin(), categoryIds.end(), [this](int leftId, int rightId){
         const int leftPriority = categoryPriority(dishCategories.value(leftId));
         const int rightPriority = categoryPriority(dishCategories.value(rightId));
         if(leftPriority != rightPriority)
-            return leftPriority < rightPriority;
-        return leftId < rightId;
+            return leftPriority < rightPriority;  // 优先级小先展示
+        return leftId < rightId;  // 优先级相同按ID升序
     });
 
+    //遍历每个分类，渲染对应菜品板块
     for(int categoryId : categoryIds)
     {
         QList<Dish> categoryDishes;
@@ -716,29 +717,39 @@ void DishWidget::renderDishes()
     QTimer::singleShot(0, this, [this](){ updateCurrentCategory(); });
 }
 
+//左边滚动的随类型变化
 void DishWidget::updateCurrentCategory()
 {
+    //sectionMarkers 保存每个分类标题控件及其分类名称
     if(sectionMarkers.isEmpty())
         return;
 
+    //计算用于判断当前分类的参考位置//表示不使用窗口最顶部作为判断线，而是使用距离顶部约 90 像素的位置。
     const int viewportTop = scrollArea->verticalScrollBar()->value() + 90;
+    //默认取得第一个分类记录。
     QString current = sectionMarkers.first().second;
     for(const auto &section : sectionMarkers)
     {
+        //当前分类标题已经越过判断线，就把它设为当前分类。
         if(section.first && section.first->y() <= viewportTop)
             current = section.second;
         else
             break;
     }
+    //查找左侧分类区域中的所有按钮，然后逐个遍历。
     for(QPushButton *button : categoryWidget->findChildren<QPushButton *>())
         button->setChecked(button->property("sectionName").toString() == current);
 }
 
+//购物车的动画
 QRect DishWidget::cartDrawerGeometry(bool opened) const
 {
+    //页面外 → 页面边缘 → 页面内部
+    //qMin(a,b)：取较小值，防止弹窗超出窗口。
     const int drawerWidth = qMin(430, width() - 40);
     const int drawerTop = 92;
     const int drawerHeight = qMax(440, height() - drawerTop - 18);
+    // 水平 X 坐标（核心：弹出 / 收起两种状态）
     const int x = opened ? width() - drawerWidth - 28 : width() + 8;
     return QRect(x, drawerTop, drawerWidth, drawerHeight);
 }
@@ -794,17 +805,22 @@ void DishWidget::applyTheme()
     cartWidget->setDarkMode(darkMode);
 }
 
+
+//-----------购物车抽屉的打开关闭-----------
 void DishWidget::openCartDrawer()
 {
     cartDrawerOpen = true;
     cartWidget->refreshOrderedOrder();
     cartBackdrop->setGeometry(rect());
+    //显示遮罩
     cartBackdrop->show();
     cartBackdrop->raise();
+    //把购物车放在页面右侧外面
     cartWidget->setGeometry(cartDrawerGeometry(false));
-    cartWidget->show();
-    cartWidget->raise();
+    cartWidget->show(); //显示购物车
+    cartWidget->raise(); //把购物车放在其他子空间上面
     cartAnimation->stop();
+    //购物车便会从页面外侧移动到页面内部
     cartAnimation->setStartValue(cartDrawerGeometry(false));
     cartAnimation->setEndValue(cartDrawerGeometry(true));
     cartAnimation->start();
@@ -838,6 +854,7 @@ void DishWidget::resizeEvent(QResizeEvent *event)
         cartWidget->setGeometry(cartDrawerGeometry(true));
 }
 
+//---------打开支付窗口----------
 void DishWidget::openPaymentWindow()
 {
     paymentOpening = false;
@@ -883,6 +900,7 @@ void DishWidget::openPaymentWindow()
     activePayWidget->activateWindow();
 }
 
+//------生成PDF小票------------
 void DishWidget::createPdfAndPrintReceipt(const QJsonObject &data, int payType)
 {
     const int orderId=data["orderId"].toInt();

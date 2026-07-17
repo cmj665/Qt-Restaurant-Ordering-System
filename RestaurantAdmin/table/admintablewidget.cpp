@@ -16,6 +16,7 @@ AdminTableWidget::AdminTableWidget(const QString &username, QWidget *parent)
     : QWidget(parent), network(new NetworkManager(this)), table(new QTableWidget(this)),
       summaryLabel(new QLabel(this)), statusLabel(new QLabel(this)), timer(new QTimer(this))
 {
+    // 页面顶部：显示管理员信息，并提供立即刷新和退出登录操作。
     setObjectName("adminTablePage");
     setAttribute(Qt::WA_StyledBackground, true);
     setStyleSheet("QWidget#adminTablePage{background:#f7f3eb;}");
@@ -45,6 +46,7 @@ AdminTableWidget::AdminTableWidget(const QString &username, QWidget *parent)
     top->addWidget(title); top->addStretch(); top->addWidget(user, 0, Qt::AlignVCenter);
     top->addWidget(refreshButton); top->addWidget(logoutButton);
 
+    // 桌台表格：展示桌台容量、当前状态、状态编号和清台操作。
     table->setColumnCount(5);
     table->setHorizontalHeaderLabels({"桌台", "容纳人数", "当前状态", "状态编号", "操作"});
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -71,6 +73,7 @@ AdminTableWidget::AdminTableWidget(const QString &username, QWidget *parent)
         "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
     );
 
+    // 页面布局：把桌台列表和汇总信息组合成管理页面。
     auto *tableCard = new QWidget(this);
     tableCard->setObjectName("tableCard");
     tableCard->setStyleSheet("QWidget#tableCard{background:#ffffff;border-radius:22px;}");
@@ -93,8 +96,11 @@ AdminTableWidget::AdminTableWidget(const QString &username, QWidget *parent)
     layout->addWidget(tableCard, 1);
     layout->addWidget(statusLabel);
 
+    // 数据交互：连接刷新、退出、清台结果以及每三秒自动同步。
     connect(refreshButton, &QPushButton::clicked, this, &AdminTableWidget::refresh);
     connect(logoutButton, &QPushButton::clicked, this, &AdminTableWidget::logoutRequested);
+
+    //接收并显示桌台
     connect(network, &NetworkManager::tableListReceived, this, &AdminTableWidget::showTables);
     connect(network, &NetworkManager::tableListFailed, this, [this](const QString &message) { statusLabel->setText("刷新失败：" + message); });
     connect(network, &NetworkManager::tableCleaned, this, [this](bool success, const QString &message) {
@@ -102,20 +108,25 @@ AdminTableWidget::AdminTableWidget(const QString &username, QWidget *parent)
         else QMessageBox::information(this, "清台成功", "桌台已恢复为空闲状态");
         refresh();
     });
+    //自动刷新，每三秒向后端查询一次桌台状态。
     timer->setInterval(3000);
     connect(timer, &QTimer::timeout, this, &AdminTableWidget::refresh);
     timer->start();
     refresh();
 }
 
+//查询桌台
 void AdminTableWidget::refresh()
 {
+    // 刷新桌台：向后端重新获取客户端正在使用的桌台状态。
     statusLabel->setText("正在同步 Client 使用的桌台状态...");
     network->getTableList();
 }
 
+//接收并显示桌台
 void AdminTableWidget::showTables(const QList<DiningTable> &tables)
 {
+    // 列表渲染：为每个桌台生成状态标签，并统计等待清理的桌台数量。
     table->setRowCount(tables.size());
     int dirtyCount = 0;
     const QStringList states{"空闲", "用餐中", "待支付", "待清理"};
@@ -132,6 +143,7 @@ void AdminTableWidget::showTables(const QList<DiningTable> &tables)
         setCenteredItem(1, QString::number(item.capacity));
         setCenteredItem(3, QString::number(item.status));
 
+        // 状态列：把数字状态转换为空闲、用餐中、待支付或待清理标签。
         auto *statusContainer = new QWidget(table);
         statusContainer->setAttribute(Qt::WA_TranslucentBackground, true);
         auto *statusLayout = new QHBoxLayout(statusContainer);
@@ -152,6 +164,7 @@ void AdminTableWidget::showTables(const QList<DiningTable> &tables)
         statusLayout->addStretch();
         table->setCellWidget(row, 2, statusContainer);
 
+        // 清台列：只有待清理桌台可以操作，确认后调用后端清台接口。
         auto *operationContainer = new QWidget(table);
         operationContainer->setAttribute(Qt::WA_TranslucentBackground, true);
         auto *operationLayout = new QHBoxLayout(operationContainer);

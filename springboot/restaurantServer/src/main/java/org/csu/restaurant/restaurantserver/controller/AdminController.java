@@ -27,6 +27,8 @@ public class AdminController {
         return result;
     }
 
+    //密保问题
+    //查询密保问题
     @GetMapping("/security-question")
     public Map<String, Object> securityQuestion(@RequestParam String username) {
         Map<String, Object> result = new LinkedHashMap<>();
@@ -36,6 +38,7 @@ public class AdminController {
         return result;
     }
 
+    //重置密码接口
     @PostMapping("/reset-password")
     public Map<String, Object> resetPassword(@RequestBody Map<String, String> request) {
         adminService.resetPassword(request.get("username"), request.get("securityAnswer"), request.get("newPassword"));

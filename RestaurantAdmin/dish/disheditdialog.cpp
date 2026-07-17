@@ -14,6 +14,7 @@
 #include <QVBoxLayout>
 DishEditDialog::DishEditDialog(const QList<DishCategory> &categories,const Dish *dish,QWidget *parent)
     :QDialog(parent),category(new QComboBox(this)),name(new QLineEdit(this)),price(new QDoubleSpinBox(this)),stock(new QSpinBox(this)),picture(new QLineEdit(this)),description(new QTextEdit(this)) {
+    // 模式判断与外观：根据是否传入菜品，切换新增或修改模式。
     const bool editing=dish!=nullptr;
     setWindowTitle(editing?"修改菜品":"新增菜品");
     setObjectName("dishEditDialog");
@@ -36,6 +37,7 @@ DishEditDialog::DishEditDialog(const QList<DishCategory> &categories,const Dish 
         "QComboBox QAbstractItemView{background:white;color:#3f3b38;border:1px solid #ead8c5;selection-background-color:#f7d8b4;selection-color:#3f3b38;}"
     );
 
+    // 表单输入：加载分类选项，并限制价格、库存等字段的有效范围。
     for(const auto &item:categories) category->addItem(item.name,item.id);
     price->setRange(0.01,999999.99); price->setDecimals(2); price->setSuffix(" 元"); stock->setRange(0,999999);
     name->setPlaceholderText("请输入菜品名称");
@@ -45,6 +47,7 @@ DishEditDialog::DishEditDialog(const QList<DishCategory> &categories,const Dish 
     const QList<QWidget*> inputs{category,name,price,stock,picture};
     for(QWidget *input:inputs) input->setMinimumHeight(46);
 
+    // 表单布局：创建标题、输入卡片以及保存/取消按钮。
     auto *heading=new QLabel(editing?"修改菜品":"新增菜品",this);
     heading->setAlignment(Qt::AlignCenter);
     heading->setStyleSheet("font-size:27px;font-weight:800;color:#333333;background:transparent;");
@@ -81,7 +84,9 @@ DishEditDialog::DishEditDialog(const QList<DishCategory> &categories,const Dish 
     auto *layout=new QVBoxLayout(this);
     layout->setContentsMargins(38,28,38,34); layout->setSpacing(12);
     layout->addWidget(heading); layout->addWidget(subtitle); layout->addSpacing(6); layout->addWidget(card,1);
+    // 修改模式回填与提交校验：载入原数据，并确保分类和名称不为空。
     if(dish){dishId=dish->id; category->setCurrentIndex(category->findData(dish->catId)); name->setText(dish->name); price->setValue(dish->price); stock->setValue(dish->stock); picture->setText(dish->picture); description->setPlainText(dish->description);}
     connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject); connect(buttons,&QDialogButtonBox::accepted,this,[this](){if(category->currentIndex()<0||name->text().trimmed().isEmpty()){QMessageBox::warning(this,"信息不完整","请选择分类并填写菜品名称");return;}accept();});
 }
+// 表单取值：把界面输入整理为可提交给后端的 Dish 数据对象。
 Dish DishEditDialog::value() const {return {dishId,category->currentData().toInt(),name->text().trimmed(),price->value(),stock->value(),picture->text().trimmed(),description->toPlainText().trimmed(),0,0};}

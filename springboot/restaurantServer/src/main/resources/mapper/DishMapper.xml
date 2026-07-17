@@ -13,7 +13,7 @@
         ORDER BY id
     </select>
 
-    <!--查询u松油未删除的菜品-->
+    <!--查询未删除的菜品-->
     <select id="findAll"
         resultType="org.csu.restaurant.restaurantserver.entity.Dish">
 

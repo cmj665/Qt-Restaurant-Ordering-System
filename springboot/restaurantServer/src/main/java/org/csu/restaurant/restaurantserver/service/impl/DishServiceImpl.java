@@ -12,6 +12,7 @@ import java.util.List;
 import java.math.BigDecimal;
 
 @Service
+/** 菜品档案服务，集中执行字段校验、上下架状态检查和库存维护。 */
 public class DishServiceImpl implements DishService{
 
     @Autowired
@@ -80,6 +81,10 @@ public class DishServiceImpl implements DishService{
         if(dishMapper.updateStock(dishId, stock) == 0) throw new IllegalStateException("库存调整失败，请刷新后重试");
     }
 
+    /**
+     * 统一新增与编辑的输入约束，并把可选文本归一化为空字符串，防止持久层
+     * 同时出现 null 和空串两种语义。
+     */
     private void validateDish(Dish dish, boolean requireId) {
         if(dish == null || (requireId && dish.getId() == null)) throw new IllegalArgumentException("菜品参数无效");
         if(dish.getCatId() == null || dish.getName() == null || dish.getName().trim().isEmpty()) throw new IllegalArgumentException("分类和菜品名称不能为空");
@@ -90,6 +95,7 @@ public class DishServiceImpl implements DishService{
         if(dish.getDescription() == null) dish.setDescription("");
     }
 
+    /** 获取仍处于上架状态的菜品；所有修改操作均通过此处阻止脏数据写入。 */
     private Dish requireActive(Integer id) {
         if(id == null) throw new IllegalArgumentException("菜品ID不能为空");
         Dish dish=dishMapper.findById(id);

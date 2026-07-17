@@ -89,6 +89,7 @@ public class OrderServiceImpl implements OrderService{
         //2、创建订单
 
         Order order = orderMapper.findUnpaid(orderDTO.getTableId());
+        //没有未支付订单（第一次点菜）,已有未支付订单（追加菜品）
         if(order == null){
             order = new Order();
             order.setTableId(orderDTO.getTableId());
@@ -96,7 +97,7 @@ public class OrderServiceImpl implements OrderService{
             orderMapper.insertOrder(order);
         }else if(orderMapper.addTotalPrice(order.getId(), total) == 0){
             throw new IllegalStateException("订单状态已变化，请重新提交");
-        }
+        }  //数据库没有任何一行数据被修改,订单状态已经变了，当前追加菜品操作不合法，直接抛异常
 
 
         //插入订单详情
@@ -135,6 +136,7 @@ public class OrderServiceImpl implements OrderService{
         return true;
 
     }
+
     @Override
     public Order findUnpaid(Integer tableId){
 
@@ -169,31 +171,49 @@ public class OrderServiceImpl implements OrderService{
     @Override
     public OrderDetailDTO findDetailByOrderId(Integer orderId){
         OrderDetailDTO order=orderMapper.findDetailByOrderId(orderId);
-        if(order==null) throw new IllegalArgumentException("订单不存在");
+        if(order==null)
+            throw new IllegalArgumentException("订单不存在");
         order.setItems(orderItemMapper.findByOrderId(orderId));
         return order;
     }
 
     @Override
-    public List<OrderItemDTO> findPendingOrderItems(){ return orderItemMapper.findPendingOrderItems(); }
+    public List<OrderItemDTO> findPendingOrderItems(){
+        return orderItemMapper.findPendingOrderItems();
+    }
 
     @Override
-    public boolean canCheckout(Integer orderId){ return orderItemMapper.countPendingByOrderId(orderId)==0; }
+    public boolean canCheckout(Integer orderId){
+        return orderItemMapper.countPendingByOrderId(orderId)==0;
+    }
 
+    //0未出餐 1已出餐 2已取消
     @Override
     @Transactional
     public void updateItemStatus(Integer itemId,Integer status){
-        if(itemId==null || (status!=1 && status!=2)) throw new IllegalArgumentException("菜品状态参数无效");
+        if(itemId==null || (status!=1 && status!=2))
+            throw new IllegalArgumentException("菜品状态参数无效");
         OrderItemDTO item=orderItemMapper.findById(itemId);
-        if(item==null) throw new IllegalArgumentException("订单菜品不存在");
+        if(item==null)
+            throw new IllegalArgumentException("订单菜品不存在");
         Order order=orderMapper.findById(item.getOrderId());
-        if(order==null || order.getPayStatus()!=0) throw new IllegalStateException("订单已结账，不能修改出餐状态");
-        if(item.getItemStatus()!=0) throw new IllegalStateException("该菜品已处理，请刷新后重试");
-        if(orderItemMapper.updateStatusIfPending(itemId,status)==0) throw new IllegalStateException("菜品状态已变化，请刷新后重试");
+        if(order==null || order.getPayStatus()!=0)
+            throw new IllegalStateException("订单已结账，不能修改出餐状态");
+        if(item.getItemStatus()!=0)
+            throw new IllegalStateException("该菜品已处理，请刷新后重试");
+        //返回影响行数 0 → 说明并发下别人已经改了这条菜品，抛出异常，事务回滚
+        if(orderItemMapper.updateStatusIfPending(itemId,status)==0)
+            throw new IllegalStateException("菜品状态已变化，请刷新后重试");
         if(status==2){
+            //算出这道菜的总价
             BigDecimal amount=item.getPrice().multiply(BigDecimal.valueOf(item.getCount()));
-            if(orderMapper.subtractTotalPrice(item.getOrderId(),amount)==0) throw new IllegalStateException("取消菜品失败");
-            if(dishMapper.addStock(item.getDishId(),item.getCount())==0) throw new IllegalStateException("退回菜品库存失败");
+            //  订单总金额减去该菜品钱，只有订单未结账（pay_status=0）才允许扣减金额。
+            //返回值：SQL 执行后受影响的数据库行数，行数没变说明已结账
+            if(orderMapper.subtractTotalPrice(item.getOrderId(),amount)==0)
+                throw new IllegalStateException("取消菜品失败");
+            // 菜品库存加回，恢复库存
+            if(dishMapper.addStock(item.getDishId(),item.getCount())==0)
+                throw new IllegalStateException("退回菜品库存失败");
         }
     }
 

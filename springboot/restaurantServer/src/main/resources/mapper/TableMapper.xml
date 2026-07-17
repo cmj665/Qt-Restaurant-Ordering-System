@@ -24,6 +24,7 @@
     </select>
 
 
+<!--    条件状态更新：-->
     <update id="updateStatusIfCurrent">
         UPDATE dining_table
         SET status=#{status}

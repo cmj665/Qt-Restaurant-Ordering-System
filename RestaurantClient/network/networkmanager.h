@@ -12,6 +12,12 @@
 #include "../model/CartItem.h"
 #include "../model/DiningTable.h"
 
+/**
+ * @brief 客户端 HTTP 接口的统一适配层。
+ *
+ * 负责把界面层的点餐、结账和抽奖请求序列化为 REST 请求，并将响应解析为
+ * Qt 模型后通过信号返回。界面组件不应直接依赖具体 URL 或 JSON 字段。
+ */
 class NetworkManager : public QObject
 {
     Q_OBJECT
@@ -64,7 +70,9 @@ signals:
 
 private:
     QNetworkAccessManager *manager;
+    // 防止用户连续点击造成同一购物车重复提交。
     bool orderSubmitting = false;
+    // 异步下单返回任务编号后，短轮询任务状态直至成功、失败或超时。
     void pollOrderTask(const QString &taskId, int attempt = 0);
 
 private slots:

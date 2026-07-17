@@ -94,6 +94,7 @@
 
         WHERE id=#{id}
 
+<!-- 下面这条很重要，防止重复支付       -->
         AND pay_status=0
 
     </update>

@@ -15,6 +15,7 @@ PasswordRecoveryDialog::PasswordRecoveryDialog(const QString &initialUsername, Q
       queryButton(new QPushButton("查询密保问题", this)), resetButton(new QPushButton("重置密码", this)),
       resetArea(new QWidget(this))
 {
+    // 对话框外观：创建账号、密保答案和新密码输入区域。
     setWindowTitle("找回管理员密码");
     setObjectName("passwordRecoveryDialog");
     setAttribute(Qt::WA_StyledBackground, true);
@@ -87,17 +88,34 @@ PasswordRecoveryDialog::PasswordRecoveryDialog(const QString &initialUsername, Q
     layout->setContentsMargins(38, 26, 38, 34); layout->setSpacing(10);
     layout->addWidget(title); layout->addWidget(subtitle); layout->addSpacing(8); layout->addWidget(card, 1);
 
+    // 第一步：按管理员账号向后端查询密保问题。
     connect(queryButton, &QPushButton::clicked, this, [this]() {
         const QString username = usernameEdit->text().trimmed();
-        if (username.isEmpty()) { messageLabel->setText("请输入管理员账号"); return; }
-        queryButton->setEnabled(false); messageLabel->setText("正在查询密保问题...");
+        if (username.isEmpty())
+        { messageLabel->setText("请输入管理员账号");
+            return; }
+        // 防止重复点击，按钮置灰禁用
+        queryButton->setEnabled(false);
+        // 提示加载状态
+        messageLabel->setText("正在查询密保问题...");
+        // 调用网络层接口，向后端发送账号，查询对应密保问题
         network->getSecurityQuestion(username);
     });
+
+    // 查询结果：显示密保问题，并开放答案和新密码输入区域。
     connect(network, &NetworkManager::securityQuestionFinished, this,
             [this](bool success, const QString &message, const QString &question, const QString &username) {
+        // 请求结束，恢复查询按钮可用
         queryButton->setEnabled(true);
-        if (!success) { resetArea->hide(); verifiedUsername.clear(); messageLabel->setText(message); return; }
-        verifiedUsername = username;
+        // 分支1：查询失败（账号不存在/接口报错等）
+        if (!success)
+        {
+            resetArea->hide();        // 隐藏密码重置输入区
+            verifiedUsername.clear();   // 清空已验证账号缓存
+            messageLabel->setText(message);  // 展示后端返回的错误文字
+            return; }
+        // 分支2：查询成功，拿到密保问题
+        verifiedUsername = username; // 缓存当前验证通过的账号，后续改密码要用
         usernameEdit->setEnabled(false);
         queryButton->hide();
         questionLabel->setText("密保问题：" + question);
@@ -105,16 +123,42 @@ PasswordRecoveryDialog::PasswordRecoveryDialog(const QString &initialUsername, Q
         messageLabel->clear();
         answerEdit->setFocus();
     });
+    // 第二步：校验输入格式并提交密保答案及新密码。
     connect(resetButton, &QPushButton::clicked, this, [this]() {
-        if (answerEdit->text().trimmed().isEmpty()) { messageLabel->setText("请输入密保答案"); return; }
-        if (newPasswordEdit->text().length() < 6) { messageLabel->setText("新密码至少需要6位"); return; }
-        if (newPasswordEdit->text() != confirmPasswordEdit->text()) { messageLabel->setText("两次输入的新密码不一致"); return; }
+        // 校验1：密保答案不能为空
+        if (answerEdit->text().trimmed().isEmpty())
+        {
+            messageLabel->setText("请输入密保答案");
+            return;
+        }
+        // 校验2：新密码长度至少6位
+        if (newPasswordEdit->text().length() < 6)
+        {
+            messageLabel->setText("新密码至少需要6位");
+            return;
+        }
+        // 校验3：两次输入密码必须一致
+        if (newPasswordEdit->text() != confirmPasswordEdit->text())
+        {
+            messageLabel->setText("两次输入的新密码不一致");
+            return;
+        }
+        // 全部校验通过，进入提交流程
+        // 禁用按钮防重复提交
         resetButton->setEnabled(false); messageLabel->setText("正在重置密码...");
+        // 调用重置密码接口：验证账号、密保答案、新密码
         network->resetPassword(verifiedUsername, answerEdit->text(), newPasswordEdit->text());
     });
+
+   // 密码重置后端结果回调
     connect(network, &NetworkManager::passwordResetFinished, this, [this](bool success, const QString &message) {
         resetButton->setEnabled(true);
-        if (!success) { messageLabel->setText(message); return; }
+        if (!success)
+        {
+            messageLabel->setText(message);
+            return;
+        }
+         // 重置成功分支
         messageLabel->setStyleSheet("color:#2e8b57;font-size:13px;background:transparent;");
         messageLabel->setText(message);
         resetButton->setText("完成");

@@ -23,14 +23,18 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 
+//菜品管理
 AdminDishWidget::AdminDishWidget(QWidget *parent)
     : QWidget(parent), network(new NetworkManager(this)), imageManager(new QNetworkAccessManager(this)),
       table(new QTableWidget(this)), statusLabel(new QLabel(this))
 {
+    //--------------UI---------------------
+    // 页面基础样式：创建菜品管理页的背景、标题和顶部操作按钮。
     setObjectName("adminDishPage");
     setAttribute(Qt::WA_StyledBackground, true);
     setStyleSheet("QWidget#adminDishPage{background:#f7f3eb;}");
 
+    // 顶部栏：标题「菜品管理」+ 新增菜品、刷新按钮
     auto *title=new QLabel("菜品管理",this);
     title->setStyleSheet("font-family:'Microsoft YaHei UI';font-size:20px;font-weight:800;color:#333333;background:transparent;");
     auto *addButton=new QPushButton("新增菜品",this);
@@ -50,8 +54,10 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
     top->setSpacing(12);
     top->addWidget(title); top->addStretch(); top->addWidget(addButton); top->addWidget(refreshButton);
 
+    // 菜品表格：配置图片、基本信息、库存销量、状态和操作列。
     table->setColumnCount(10);
     table->setHorizontalHeaderLabels({"图片","ID","菜名","分类","价格","库存","销量","状态","描述","操作"});
+    //10 列 0. 菜品缩略图 | 1. 菜品 ID | 2. 菜名 | 3. 分类名 | 4. 价格 | 5. 库存 | 6. 销量 | 7. 上下架状态 | 8. 菜品描述（拉伸自适应） | 9. 操作按钮列
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     table->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Fixed);
@@ -65,11 +71,13 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
     table->horizontalHeader()->setFixedHeight(52);
     table->verticalHeader()->setVisible(false);
     table->verticalHeader()->setDefaultSectionSize(82);
-    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    table->setAlternatingRowColors(true);
-    table->setShowGrid(false);
-    table->setFocusPolicy(Qt::NoFocus);
-    table->setSelectionMode(QAbstractItemView::NoSelection);
+
+    //交互限制（只读表格）
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);// 禁止双击单元格编辑
+    table->setAlternatingRowColors(true);// 奇偶行交替底色，提升阅读
+    table->setShowGrid(false); // 隐藏网格线
+    table->setFocusPolicy(Qt::NoFocus);// 去掉表格焦点虚线框
+    table->setSelectionMode(QAbstractItemView::NoSelection);   // 禁止选中行/单元格
     table->setMouseTracking(false);
     table->viewport()->setMouseTracking(false);
     table->viewport()->setAttribute(Qt::WA_Hover, false);
@@ -84,6 +92,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
         "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
     );
 
+    // 页面布局：把菜品表格放入带阴影的卡片容器。
     auto *tableCard=new QWidget(this);
     tableCard->setObjectName("dishTableCard");
     tableCard->setStyleSheet("QWidget#dishTableCard{background:#ffffff;border-radius:22px;}");
@@ -98,22 +107,33 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
     layout->setContentsMargins(36,13,36,28);
     layout->setSpacing(16);
     layout->addLayout(top); layout->addWidget(tableCard,1); layout->addWidget(statusLabel);
+    // 操作连接：处理新增、刷新以及分类数据加载。
     connect(addButton,&QPushButton::clicked,this,&AdminDishWidget::addDish);
     connect(refreshButton,&QPushButton::clicked,this,&AdminDishWidget::refresh);
     connect(network,&NetworkManager::dishCategoriesReceived,this,[this](const QList<DishCategory>&items){categories=items;refresh();});
 
+    // 列表渲染：收到菜品数据后生成每一行，并统计上下架与库存预警信息，最下面一行
     connect(network,&NetworkManager::dishListReceived,this,[this](const QList<Dish>&dishes){
         table->setRowCount(dishes.size());
+        //active：在售菜品数量 removed：下架菜品数量 low：库存预警（<10）菜品数量 maxId：当前最大菜品 ID
         int active=0, removed=0, low=0, maxId=0;
         QStringList lowNames;
+        //循环每一道菜品
         for(int row=0;row<dishes.size();++row){
             const Dish dish=dishes[row];
             maxId=qMax(maxId,dish.id);
             const bool deleted=dish.isDeleted==1;
             if(deleted) ++removed;
-            else { ++active; if(dish.stock<10){++low;lowNames<<QString("%1(%2)").arg(dish.name).arg(dish.stock);} }
+            else { ++active;
+                if(dish.stock<10)     //库存预警
+                {
+                    ++low;
+                    lowNames<<QString("%1(%2)").arg(dish.name).arg(dish.stock);
+                } }
             QString categoryName=QString::number(dish.catId);
             for(const auto &item:categories) if(item.id==dish.catId){categoryName=item.name;break;}
+
+            // 图片区域：异步从后端加载菜品图片并裁剪为圆角缩略图。
             auto *imageContainer=new QWidget(table);
             imageContainer->setAttribute(Qt::WA_TranslucentBackground,true);
             auto *imageLayout=new QHBoxLayout(imageContainer);
@@ -128,6 +148,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
             if(!dish.picture.trimmed().isEmpty()){
                 QString imagePath=dish.picture.trimmed();
                 QUrl imageUrl;
+                // 判断图片路径，拼接完整url，发起网络请求
                 if(imagePath.startsWith("http://")||imagePath.startsWith("https://")) imageUrl=QUrl(imagePath);
                 else if(imagePath.startsWith("/images/")) imageUrl=QUrl("http://localhost:8080"+imagePath);
                 else imageUrl=QUrl("http://localhost:8080/images/"+imagePath);
@@ -149,6 +170,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
                 });
             }
 
+            // 文本区域：填充编号、名称、分类、价格、库存、销量和描述。
             const QList<QPair<int,QString>> values{
                 {1,QString::number(dish.id)},{2,dish.name},{3,categoryName},
                 {4,QString("¥ %1").arg(dish.price,0,'f',2)},{5,QString::number(dish.stock)},
@@ -160,6 +182,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
                 table->setItem(row,value.first,cell);
             }
 
+            // 状态区域：显示在售/下架标签，并突出缺货或低库存菜品。
             auto *stateContainer=new QWidget(table);
             stateContainer->setAttribute(Qt::WA_TranslucentBackground,true);
             auto *stateLayout=new QHBoxLayout(stateContainer);
@@ -173,12 +196,15 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
             stateLayout->addStretch(); stateLayout->addWidget(stateTag); stateLayout->addStretch();
             table->setCellWidget(row,7,stateContainer);
 
+            //库存预警
             if(!deleted && dish.stock<10){
                 table->item(row,5)->setForeground(QColor("#d32f2f"));
                 table->item(row,5)->setText(dish.stock==0?"0（缺货）":QString::number(dish.stock)+"（预警）");
             }
+
             if(deleted) for(int col=1;col<=8;++col) if(table->item(row,col)) table->item(row,col)->setForeground(QColor("#8b8b8b"));
 
+            // 行操作区域：提供修改、库存调整以及上架/下架功能。
             auto *actions=new QWidget(table); actions->setAttribute(Qt::WA_TranslucentBackground,true);
             auto *box=new QHBoxLayout(actions); box->setContentsMargins(3,10,3,10); box->setSpacing(8);
             auto *edit=new QPushButton("修改",actions); auto *stockButton=new QPushButton("调库存",actions);
@@ -212,6 +238,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
             });
             table->setCellWidget(row,9,actions);
         }
+        // 汇总状态：显示菜品数量、上下架数量和库存预警。
         const QString warning=low>0?QString("库存预警 %1 项：%2").arg(low).arg(lowNames.join("、")):"库存正常";
         statusLabel->setStyleSheet(low>0?"color:#d32f2f;font-weight:bold;":"color:#2e7d32;");
         statusLabel->setText(QString("共 %1 道菜 · 在售 %2 · 已下架 %3 · 最大编号 %4（编号允许不连续） · %5 · 最近刷新 %6")
@@ -225,11 +252,31 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
     network->getDishCategories();
 }
 
-void AdminDishWidget::refresh(){statusLabel->setText("正在读取菜品列表...");network->getDishList();}
-void AdminDishWidget::addDish(){DishEditDialog dialog(categories,nullptr,this);if(dialog.exec()==QDialog::Accepted)network->addDish(dialog.value());}
-void AdminDishWidget::editDish(const Dish&dish){DishEditDialog dialog(categories,&dish,this);if(dialog.exec()==QDialog::Accepted)network->updateDish(dialog.value());}
+// 列表刷新：重新向后端查询菜品。
+void AdminDishWidget::refresh(){
+    statusLabel->setText("正在读取菜品列表...");
+    network->getDishList();
+}
+
+
+
+// 新增菜品：打开空白编辑对话框并提交新菜品。
+void AdminDishWidget::addDish(){
+    DishEditDialog dialog(categories,nullptr,this);
+    if(dialog.exec()==QDialog::Accepted)
+        network->addDish(dialog.value());
+}
+
+// 修改菜品：载入原菜品信息，确认后提交更新。
+void AdminDishWidget::editDish(const Dish&dish){
+    DishEditDialog dialog(categories,&dish,this);
+    if(dialog.exec()==QDialog::Accepted)
+        network->updateDish(dialog.value());
+}
+
 void AdminDishWidget::adjustStock(const Dish&dish)
 {
+    // 库存调整：创建数量输入对话框，确认后调用后端库存接口。
     QDialog dialog(this);
     dialog.setWindowTitle("库存调整");
     dialog.setObjectName("stockDialog");
@@ -275,7 +322,12 @@ void AdminDishWidget::adjustStock(const Dish&dish)
     layout->setContentsMargins(40,28,40,30); layout->setSpacing(12);
     layout->addWidget(title); layout->addWidget(dishName); layout->addSpacing(10);
     layout->addWidget(hint); layout->addWidget(stockInput); layout->addStretch(); layout->addWidget(buttons);
+
+    //确认调整的按钮
     connect(buttons,&QDialogButtonBox::accepted,&dialog,&QDialog::accept);
+    //取消的按钮
     connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
-    if(dialog.exec()==QDialog::Accepted) network->adjustStock(dish.id,stockInput->value());
+    //用户点确认则返回QDialog::Accepted，进入 if 分支；
+    if(dialog.exec()==QDialog::Accepted)
+        network->adjustStock(dish.id,stockInput->value());
 }

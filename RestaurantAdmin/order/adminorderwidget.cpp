@@ -14,10 +14,12 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+//出餐管理
 AdminOrderWidget::AdminOrderWidget(QWidget *parent)
     : QWidget(parent), network(new NetworkManager(this)), table(new QTableWidget(this)),
       summary(new QLabel(this)), timer(new QTimer(this))
 {
+    // 页面顶部：创建出餐管理标题、手动刷新按钮和订单统计区域。
     setObjectName("adminOrderPage");
     setAttribute(Qt::WA_StyledBackground, true);
     setStyleSheet("QWidget#adminOrderPage{background:#f7f3eb;}");
@@ -46,6 +48,7 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
     summary->setTextFormat(Qt::RichText);
     summary->setStyleSheet("font-size:17px;color:#7d7168;background:transparent;");
 
+    // 出餐表格：展示桌台、订单、菜品、出餐状态、时间和操作按钮。
     table->setColumnCount(9);
     table->setHorizontalHeaderLabels({"桌台", "订单号", "菜品名称", "数量", "单价", "出餐状态", "下单时间", "订单项ID", "操作"});
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -74,6 +77,7 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
         "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
     );
 
+    // 页面布局：使用卡片容器承载订单项表格。
     auto *tableCard = new QWidget(this);
     tableCard->setObjectName("orderTableCard");
     tableCard->setStyleSheet("QWidget#orderTableCard{background:#ffffff;border-radius:22px;}");
@@ -94,7 +98,10 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
     layout->addSpacing(4);
     layout->addWidget(tableCard, 1);
 
+    // 数据交互：手动/定时刷新列表，并渲染后端返回的订单项。
     connect(refreshButton, &QPushButton::clicked, this, &AdminOrderWidget::refresh);
+
+    //接受订单项
     connect(network, &NetworkManager::adminOrderItemsReceived, this, [this](const QJsonArray &items) {
         table->setRowCount(items.size());
         int pending = 0;
@@ -109,6 +116,7 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
             else createTime.replace('T', ' ');
             if (createTime.isEmpty()) createTime = "--";
 
+            // 基本信息列：填充桌台、订单号、菜品、数量、价格和时间。
             const QList<QPair<int, QString>> values{
                 {0, item["tableName"].toString()},
                 {1, QString::number(item["orderId"].toInt())},
@@ -124,6 +132,7 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
                 table->setItem(row, value.first, cell);
             }
 
+            // 状态列：将数字状态显示为未出餐、已出餐或已取消标签。
             auto *statusContainer = new QWidget(table);
             statusContainer->setAttribute(Qt::WA_TranslucentBackground, true);
             auto *statusLayout = new QHBoxLayout(statusContainer);
@@ -142,6 +151,7 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
             statusLayout->addStretch();
             table->setCellWidget(row, 5, statusContainer);
 
+            // 操作列：待处理菜品可以确认出餐或取消；取消会先二次确认。
             auto *actions = new QWidget(table);
             actions->setAttribute(Qt::WA_TranslucentBackground, true);
             auto *box = new QHBoxLayout(actions);
@@ -168,7 +178,10 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
             box->addWidget(serve);
             box->addWidget(cancel);
             const int id = item["id"].toInt();
+            //确定出餐
             connect(serve, &QPushButton::clicked, this, [this, id]() { network->updateOrderItemStatus(id, 1); });
+
+            //取消菜品
             connect(cancel, &QPushButton::clicked, this, [this, id]() {
                 if (QMessageBox::question(this, "确认取消", "取消后将退回库存并从订单金额中扣除，确定继续？") == QMessageBox::Yes)
                     network->updateOrderItemStatus(id, 2);
@@ -181,10 +194,14 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
             "　·　每 2 秒自动同步"
         ).arg(items.size()).arg(pending));
     });
+
+    //操作完成后刷新
     connect(network, &NetworkManager::orderItemOperationFinished, this, [this](bool ok, const QString &message) {
         if (!ok) QMessageBox::warning(this, "操作失败", message);
         refresh();
     });
+
+    //自动定时刷新模块
     timer->setInterval(2000);
     connect(timer, &QTimer::timeout, this, &AdminOrderWidget::refresh);
     timer->start();
@@ -193,5 +210,6 @@ AdminOrderWidget::AdminOrderWidget(QWidget *parent)
 
 void AdminOrderWidget::refresh()
 {
+    // 刷新出餐：向后端查询最新的管理端订单项。
     network->getAdminOrderItems();
 }

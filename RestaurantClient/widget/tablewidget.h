@@ -13,6 +13,12 @@
 
 namespace Ui { class TableWidget; }
 
+/**
+ * @brief 桌台选择页。
+ *
+ * 定时刷新桌台占用状态，并按服务端返回的桌台编号更新对应卡片；只有可用桌台
+ * 才会发出 tableSelected 信号进入点餐流程。
+ */
 class TableWidget : public QWidget
 {
     Q_OBJECT

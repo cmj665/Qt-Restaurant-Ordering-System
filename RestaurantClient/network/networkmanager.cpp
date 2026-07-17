@@ -109,6 +109,7 @@ void NetworkManager::onFinished(QNetworkReply *reply){
 void NetworkManager::submitOrder(int tableId,const QList<CartItem> &items){
     if(orderSubmitting)
     {
+        //orderSubmitting用于防止用户连续点击：
         emit orderSubmitted(false, "订单正在后台处理中，请勿重复提交");
         return;
     }
@@ -184,8 +185,11 @@ void NetworkManager::getDishCategories()
     });
 }
 
+
+//客户端轮询代码
 void NetworkManager::pollOrderTask(const QString &taskId, int attempt)
 {
+    //最多轮询 60 次间隔 500ms，成功 / 失败则结束轮询，超时 / 网络错误 / 处理中都延迟重试。
     if(attempt >= 60)
     {
         orderSubmitting = false;
@@ -211,6 +215,7 @@ void NetworkManager::pollOrderTask(const QString &taskId, int attempt)
         const QString message = result["message"].toString();
         reply->deleteLater();
 
+        //状态判断：
         if(status == "SUCCESS")
         {
             orderSubmitting = false;
@@ -234,6 +239,7 @@ void NetworkManager::getTableList()
 {
     QUrl url("http://localhost:8080/table/list");
     QNetworkRequest request(url);
+    //manager 是类内 QNetworkAccessManager 网络管理器
     QNetworkReply *reply=manager->get(request);
 
     connect(reply,&QNetworkReply::finished,this,[this,reply](){
@@ -253,13 +259,14 @@ void NetworkManager::getTableList()
         {
             QJsonObject obj = value.toObject();
             DiningTable table;
-            table.id = obj["id"].toInt();
+            table.id = obj["id"].toInt();      //读取 json 里id字段，转整数赋值给桌台 id。
             table.tableName = obj["tableName"].toString();
             table.capacity = obj["capacity"].toInt();
             table.status = obj["status"].toInt();
             tables.append(table);
 
         }
+        //发射信号，把完整桌台列表传给绑定的 TableWidget::showTables 函数，渲染界面桌台卡片
         emit tableListReceived(tables);
         reply->deleteLater();
 
@@ -382,10 +389,15 @@ void NetworkManager::checkoutTable(int tableId)
     });
 }
 
+
 void NetworkManager::pay(int orderId,int payType){
     QUrl url("http://localhost:8080/payment/pay");
+    //创建网络请求对象，绑定接口地址
     QNetworkRequest request(url);
+    //设置请求头 Content-Type: application/json，告诉后端本次请求传递 JSON 数据
     request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+
+    //组装 JSON 请求体
     QJsonObject obj;
     obj["orderId"] = orderId;
     obj["payType"] = payType;
@@ -393,6 +405,8 @@ void NetworkManager::pay(int orderId,int payType){
         <<"支付请求:"
         <<orderId
         <<payType;
+
+    //QJsonDocument 把 JSON 对象转为二进制字节数组，网络 POST 只能发字节流
     QJsonDocument doc(obj);
     QByteArray data =doc.toJson();
     QNetworkReply *reply = manager->post(request,data);
@@ -404,6 +418,7 @@ void NetworkManager::pay(int orderId,int payType){
             QJsonDocument doc =QJsonDocument::fromJson(data,&error);
             QString msg="支付失败";
 
+            //如果后端有返回合法JSON，读取后端自定义错误提示message
             if(error.error==QJsonParseError::NoError)
             {
                 QJsonObject obj=doc.object();
@@ -413,6 +428,7 @@ void NetworkManager::pay(int orderId,int payType){
                 }
             }
 
+            //向外发射失败信号，传给 PayWidget 界面
             emit payFinished(false,msg);
             reply->deleteLater();
             return;

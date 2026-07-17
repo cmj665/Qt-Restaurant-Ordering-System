@@ -19,6 +19,7 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
     , messageLabel(new QLabel(this))
     , network(new NetworkManager(this))
 {
+    // 登录页外观：创建品牌标题、账号密码输入框和登录按钮。
     ui->setupUi(this);
 
     setWindowTitle("餐厅管理系统 - 管理端登录");
@@ -86,6 +87,7 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
     messageLabel->setFixedHeight(24);
     messageLabel->setStyleSheet("color:#d65c4a;font-size:14px;background:transparent;");
 
+    // 找回密码入口：打开密保验证对话框，成功后提示使用新密码登录。
     auto *forgotButton = new QPushButton("忘记密码？", panel);
     forgotButton->setCursor(Qt::PointingHandCursor);
     forgotButton->setFocusPolicy(Qt::NoFocus);
@@ -116,6 +118,7 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
 
     usernameEdit->setFocus();
 
+    // 登录交互：按钮或回车触发登录，并接收后端验证结果。
     connect(loginButton, &QPushButton::clicked, this, &AdminLoginWidget::submitLogin);
     connect(passwordEdit, &QLineEdit::returnPressed, this, &AdminLoginWidget::submitLogin);
     connect(forgotButton, &QPushButton::clicked, this, [this]() {
@@ -140,6 +143,7 @@ AdminLoginWidget::AdminLoginWidget(QWidget *parent)
 
 void AdminLoginWidget::submitLogin()
 {
+    // 表单校验：账号密码非空后，锁定按钮并向后端发起登录请求。
     messageLabel->setStyleSheet("color:#d65c4a;font-size:14px;background:transparent;");
     const QString username = usernameEdit->text().trimmed();
     if (username.isEmpty() || passwordEdit->text().isEmpty()) {
