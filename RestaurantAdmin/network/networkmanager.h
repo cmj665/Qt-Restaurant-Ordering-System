@@ -18,6 +18,7 @@ class QNetworkAccessManager;
 class NetworkManager : public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(NetworkManager)
 public:
     explicit NetworkManager(QObject *parent = nullptr);
     void login(const QString &username, const QString &password);
@@ -50,7 +51,6 @@ signals:
 
 private:
     QNetworkAccessManager *manager;
-    const QString baseUrl = "http://localhost:8080";
     /** add/update 共用的菜品 JSON 序列化与请求发送逻辑。 */
     void sendDish(const QString &path, const Dish &dish);
 };

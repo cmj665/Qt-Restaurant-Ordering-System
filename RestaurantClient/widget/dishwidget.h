@@ -37,6 +37,7 @@ class DishWidget;
 class DishWidget : public QWidget
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(DishWidget)
 
 public:
     explicit DishWidget(int tableId,QWidget *parent = nullptr);

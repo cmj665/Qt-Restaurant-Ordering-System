@@ -4,18 +4,16 @@ import org.csu.restaurant.restaurantserver.entity.Dish;
 import org.csu.restaurant.restaurantserver.entity.DishCategory;
 import org.csu.restaurant.restaurantserver.dto.StockAdjustmentDTO;
 import org.csu.restaurant.restaurantserver.service.DishService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/dish")
+@RequiredArgsConstructor
 public class DishController {
-
-    @Autowired
-    private DishService dishService;
+    private final DishService dishService;
 
     // 查询全部菜品
     @GetMapping("/list")

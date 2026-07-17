@@ -2,8 +2,7 @@ package org.csu.restaurant.restaurantserver.controller;
 
 import org.csu.restaurant.restaurantserver.entity.Admin;
 import org.csu.restaurant.restaurantserver.service.AdminService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -11,10 +10,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class AdminController {
-
-    @Autowired
-    private AdminService adminService;
+    private final AdminService adminService;
 
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Admin admin){

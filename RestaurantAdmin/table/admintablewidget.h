@@ -18,6 +18,7 @@ class NetworkManager;
 class AdminTableWidget : public QWidget
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(AdminTableWidget)
 public:
     explicit AdminTableWidget(const QString &username, QWidget *parent = nullptr);
 

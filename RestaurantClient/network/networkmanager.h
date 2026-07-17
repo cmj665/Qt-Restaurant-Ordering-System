@@ -21,6 +21,7 @@
 class NetworkManager : public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(NetworkManager)
 public:
     explicit NetworkManager(QObject *parent = nullptr);
 

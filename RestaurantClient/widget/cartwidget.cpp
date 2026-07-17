@@ -1,6 +1,7 @@
 #include "cartwidget.h"
 #include "ui_cartwidget.h"
 #include "../network/networkmanager.h"
+#include "../network/serverconfig.h"
 
 #include <QCloseEvent>
 #include <QListWidgetItem>
@@ -427,7 +428,7 @@ void CartWidget::refreshCart()
             QPointer<QLabel> safeThumbnail(thumbnail);
             //请求完成回调
             QNetworkReply *reply = imageManager->get(QNetworkRequest(
-                QUrl("http://localhost:8080/images/" + item.dish.picture)));
+                    ServerConfig::imageUrl(item.dish.picture)));
             const int dishId = item.dish.id;
             connect(reply, &QNetworkReply::finished, this, [this, reply, safeThumbnail, dishId](){
                 QPixmap pixmap;
@@ -530,7 +531,7 @@ void CartWidget::renderOrderedOrder(bool success, const QJsonObject &data)
         {
             QPointer<QLabel> safeThumbnail(thumbnail);
             //请求后端图片接口
-            QNetworkReply *reply = imageManager->get(QNetworkRequest(QUrl("http://localhost:8080/images/" + picture)));
+        QNetworkReply *reply = imageManager->get(QNetworkRequest(ServerConfig::imageUrl(picture)));
             connect(reply, &QNetworkReply::finished, this, [reply, safeThumbnail](){
                 QPixmap pixmap;
                 if(reply->error() == QNetworkReply::NoError && pixmap.loadFromData(reply->readAll()) && safeThumbnail)

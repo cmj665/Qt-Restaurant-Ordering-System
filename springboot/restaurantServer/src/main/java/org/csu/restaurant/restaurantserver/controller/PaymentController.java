@@ -2,16 +2,14 @@ package org.csu.restaurant.restaurantserver.controller;
 
 import org.csu.restaurant.restaurantserver.dto.PaymentDTO;
 import org.csu.restaurant.restaurantserver.service.PaymentService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/payment")
+@RequiredArgsConstructor
 public class PaymentController {
-
-    @Autowired
-    private PaymentService paymentService;
+    private final PaymentService paymentService;
 
     @PostMapping("/pay")
     public String pay(@RequestBody PaymentDTO paymentDTO){

@@ -7,9 +7,7 @@ import org.csu.restaurant.restaurantserver.dto.OrderTaskDTO;
 import org.csu.restaurant.restaurantserver.entity.Order;
 import org.csu.restaurant.restaurantserver.service.OrderService;
 import org.csu.restaurant.restaurantserver.service.OrderQueueService;
-
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -20,6 +18,7 @@ import org.csu.restaurant.restaurantserver.dto.OrderItemDTO;
 
 @RestController
 @RequestMapping("/order")
+@RequiredArgsConstructor
 /**
  * 点餐流程接口。
  *
@@ -28,11 +27,8 @@ import org.csu.restaurant.restaurantserver.dto.OrderItemDTO;
  */
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
-
-    @Autowired
-    private OrderQueueService orderQueueService;
+    private final OrderService orderService;
+    private final OrderQueueService orderQueueService;
 
     @PostMapping("/submit")
     /** 接收下单请求并立即返回异步任务编号，避免 HTTP 线程等待库存事务。 */

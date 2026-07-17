@@ -4,19 +4,17 @@ import org.csu.restaurant.restaurantserver.entity.Dish;
 import org.csu.restaurant.restaurantserver.entity.DishCategory;
 import org.csu.restaurant.restaurantserver.mapper.DishMapper;
 import org.csu.restaurant.restaurantserver.service.DishService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.math.BigDecimal;
 
 @Service
+@RequiredArgsConstructor
 /** 菜品档案服务，集中执行字段校验、上下架状态检查和库存维护。 */
 public class DishServiceImpl implements DishService{
-
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
     @Override
     public List<Dish> findAll(){

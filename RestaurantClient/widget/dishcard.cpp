@@ -1,4 +1,5 @@
 #include "dishcard.h"
+#include "../network/serverconfig.h"
 #include "ui_dishcard.h"
 
 #include <QHBoxLayout>
@@ -146,11 +147,7 @@ DishCard::DishCard(const Dish &dish, QWidget *parent, bool recommended)
     Q_UNUSED(cacheConfigured);
     QString picturePath=dish.picture.trimmed();
     // 自动拼接完整图片URL：本地后端8080端口
-    const QUrl imageUrl=picturePath.startsWith("http://")||picturePath.startsWith("https://")
-        ? QUrl(picturePath)
-        : picturePath.startsWith("/images/")
-            ? QUrl("http://localhost:8080"+picturePath)
-            : QUrl("http://localhost:8080/images/"+picturePath);
+    const QUrl imageUrl = ServerConfig::imageUrl(picturePath);
     //统一图片请求地址，用 URL 作为缓存 key，避免重复下载同一张图。
     const QString cacheKey="dish-card:"+imageUrl.toString();
 

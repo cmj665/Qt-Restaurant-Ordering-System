@@ -3,17 +3,15 @@ package org.csu.restaurant.restaurantserver.service.impl;
 import org.csu.restaurant.restaurantserver.entity.DiningTable;
 import org.csu.restaurant.restaurantserver.mapper.TableMapper;
 import org.csu.restaurant.restaurantserver.service.TableService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class TableServiceImpl implements TableService{
-
-    @Autowired
-    private TableMapper tableMapper;
+    private final TableMapper tableMapper;
 
     @Override
     public List<DiningTable> findAll(){

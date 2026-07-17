@@ -9,25 +9,17 @@ import org.csu.restaurant.restaurantserver.mapper.PaymentMapper;
 import org.csu.restaurant.restaurantserver.mapper.TableMapper;
 import org.csu.restaurant.restaurantserver.mapper.OrderItemMapper;
 import org.csu.restaurant.restaurantserver.service.PaymentService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService{
-
-    @Autowired
-    private OrderMapper orderMapper;
-
-    @Autowired
-    private PaymentMapper paymentMapper;
-
-    @Autowired
-    private TableMapper tableMapper;
-
-    @Autowired
-    private OrderItemMapper orderItemMapper;
+    private final OrderMapper orderMapper;
+    private final PaymentMapper paymentMapper;
+    private final TableMapper tableMapper;
+    private final OrderItemMapper orderItemMapper;
 
     @Override
     @Transactional   //把整个pay()方法包含的数据库操作放进同一个事务中。

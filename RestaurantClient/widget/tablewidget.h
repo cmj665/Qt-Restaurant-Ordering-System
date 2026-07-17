@@ -22,6 +22,7 @@ namespace Ui { class TableWidget; }
 class TableWidget : public QWidget
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(TableWidget)
 
 public:
     explicit TableWidget(QWidget *parent = nullptr);

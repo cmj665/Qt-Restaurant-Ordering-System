@@ -1,4 +1,5 @@
 #include "networkmanager.h"
+#include "serverconfig.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -10,6 +11,8 @@
 #include <QUrlQuery>
 
 namespace {
+const QString &baseUrl = ServerConfig::BaseUrl;
+
 // 网络错误解析：优先读取后端 JSON 中的 message，否则使用 Qt 的网络错误文本。
 QString errorMessage(QNetworkReply *reply, const QByteArray &body)
 {

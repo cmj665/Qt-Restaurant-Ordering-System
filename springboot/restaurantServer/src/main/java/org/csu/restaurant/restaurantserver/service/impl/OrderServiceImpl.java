@@ -12,8 +12,7 @@ import org.csu.restaurant.restaurantserver.mapper.OrderItemMapper;
 import org.csu.restaurant.restaurantserver.mapper.OrderMapper;
 import org.csu.restaurant.restaurantserver.service.OrderService;
 import org.csu.restaurant.restaurantserver.mapper.TableMapper;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -23,19 +22,12 @@ import java.util.List;
 
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService{
-
-    @Autowired
-    private OrderMapper orderMapper;
-
-    @Autowired
-    private DishMapper dishMapper;
-
-    @Autowired
-    private TableMapper tableMapper;
-
-    @Autowired
-    private OrderItemMapper orderItemMapper;
+    private final OrderMapper orderMapper;
+    private final DishMapper dishMapper;
+    private final TableMapper tableMapper;
+    private final OrderItemMapper orderItemMapper;
 
     @Override
     @Transactional

@@ -3,18 +3,16 @@ package org.csu.restaurant.restaurantserver.controller;
 import org.csu.restaurant.restaurantserver.entity.DiningTable;
 import org.csu.restaurant.restaurantserver.dto.TableStatusDTO;
 import org.csu.restaurant.restaurantserver.service.TableService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/table")
+@RequiredArgsConstructor
 public class TableController {
-
-    @Autowired
-    private TableService tableService;
+    private final TableService tableService;
 
     //查询所有桌台
     @GetMapping("/list")

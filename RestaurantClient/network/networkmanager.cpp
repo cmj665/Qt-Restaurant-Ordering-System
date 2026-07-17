@@ -1,4 +1,5 @@
 #include "networkmanager.h"
+#include "serverconfig.h"
 
 #include <QNetworkRequest>
 #include <QUrl>
@@ -27,7 +28,7 @@ NetworkManager::NetworkManager(QObject *parent)
 
 
 void NetworkManager::getDishList(){
-    QUrl url("http://localhost:8080/dish/list");
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/dish/list"));
     QNetworkRequest request(url);
     QNetworkReply *reply = manager->get(request);
 
@@ -131,7 +132,7 @@ void NetworkManager::submitOrder(int tableId,const QList<CartItem> &items){
     QByteArray jsonData = document.toJson(QJsonDocument::Compact);
 
     qDebug()<<"即将提交的订单JSON："<<QString::fromUtf8(jsonData);
-    QNetworkRequest request{QUrl("http://localhost:8080/order/submit")};
+    QNetworkRequest request{ServerConfig::apiUrl(QStringLiteral("/order/submit"))};
     request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
     QNetworkReply *reply = manager->post(request,jsonData);
     connect(reply,&QNetworkReply::finished,this,[this,reply](){
@@ -168,7 +169,7 @@ void NetworkManager::submitOrder(int tableId,const QList<CartItem> &items){
 
 void NetworkManager::getDishCategories()
 {
-    QNetworkReply *reply = manager->get(QNetworkRequest(QUrl("http://localhost:8080/dish/categories")));
+    QNetworkReply *reply = manager->get(QNetworkRequest(ServerConfig::apiUrl(QStringLiteral("/dish/categories"))));
     connect(reply, &QNetworkReply::finished, this, [this, reply](){
         QMap<int, QString> categories;
         if(reply->error() == QNetworkReply::NoError)
@@ -197,7 +198,7 @@ void NetworkManager::pollOrderTask(const QString &taskId, int attempt)
         return;
     }
 
-    QNetworkRequest request(QUrl(QString("http://localhost:8080/order/task/%1").arg(taskId)));
+    QNetworkRequest request(ServerConfig::apiUrl(QStringLiteral("/order/task/%1").arg(taskId)));
     QNetworkReply *reply = manager->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply, taskId, attempt](){
         const QByteArray data = reply->readAll();
@@ -237,7 +238,7 @@ void NetworkManager::pollOrderTask(const QString &taskId, int attempt)
 
 void NetworkManager::getTableList()
 {
-    QUrl url("http://localhost:8080/table/list");
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/table/list"));
     QNetworkRequest request(url);
     //manager 是类内 QNetworkAccessManager 网络管理器
     QNetworkReply *reply=manager->get(request);
@@ -274,7 +275,7 @@ void NetworkManager::getTableList()
 }
 
 void NetworkManager::updateTableStatus(int id,int status){
-    QUrl url("http://localhost:8080/table/status");
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/table/status"));
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader,
         "application/json");
@@ -311,7 +312,7 @@ void NetworkManager::updateTableStatus(int id,int status){
 
 void NetworkManager::cleanTable(int id)
 {
-    QNetworkRequest request(QUrl(QString("http://localhost:8080/table/clean/%1").arg(id)));
+    QNetworkRequest request(ServerConfig::apiUrl(QStringLiteral("/table/clean/%1").arg(id)));
     QNetworkReply *reply = manager->post(request, QByteArray());
     connect(reply, &QNetworkReply::finished, this, [this, reply](){
         const QByteArray data = reply->readAll();
@@ -333,7 +334,7 @@ void NetworkManager::cleanTable(int id)
 
 void NetworkManager::getUnpaidOrder(int tableId)
 {
-    QUrl url = (QString("http://localhost:8080/order/unpaid/%1").arg(tableId));
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/order/unpaid/%1").arg(tableId));
     QNetworkRequest request(url);
     QNetworkReply *reply = manager->get(request);
     connect(reply,&QNetworkReply::finished,this,[this,reply](){
@@ -371,7 +372,7 @@ void NetworkManager::getUnpaidOrder(int tableId)
 
 void NetworkManager::checkoutTable(int tableId)
 {
-    QNetworkRequest request(QUrl(QString("http://localhost:8080/order/checkout/%1").arg(tableId)));
+    QNetworkRequest request(ServerConfig::apiUrl(QStringLiteral("/order/checkout/%1").arg(tableId)));
     QNetworkReply *reply = manager->post(request, QByteArray());
     connect(reply, &QNetworkReply::finished, this, [this, reply](){
         const QByteArray data = reply->readAll();
@@ -391,7 +392,7 @@ void NetworkManager::checkoutTable(int tableId)
 
 
 void NetworkManager::pay(int orderId,int payType){
-    QUrl url("http://localhost:8080/payment/pay");
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/payment/pay"));
     //创建网络请求对象，绑定接口地址
     QNetworkRequest request(url);
     //设置请求头 Content-Type: application/json，告诉后端本次请求传递 JSON 数据
@@ -445,7 +446,7 @@ void NetworkManager::pay(int orderId,int payType){
 
 
 void NetworkManager::getOrderDetail(int tableId){
-    QUrl url(QString("http://localhost:8080/order/detail/%1").arg(tableId));
+    QUrl url = ServerConfig::apiUrl(QStringLiteral("/order/detail/%1").arg(tableId));
     QNetworkRequest request(url);
     QNetworkReply *reply = manager->get(request);
     connect(reply,&QNetworkReply::finished,this,[this,reply](){
@@ -472,20 +473,20 @@ void NetworkManager::getOrderDetail(int tableId){
 }
 
 void NetworkManager::getOrderReceipt(int orderId){
-    QNetworkReply *reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/order/receipt/%1").arg(orderId))));
+    QNetworkReply *reply=manager->get(QNetworkRequest(ServerConfig::apiUrl(QStringLiteral("/order/receipt/%1").arg(orderId))));
     connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QString message=reply->errorString();QJsonObject error=QJsonDocument::fromJson(data).object();if(error.contains("message"))message=error["message"].toString();emit orderReceiptReceived(false,QJsonObject(),message);}else emit orderReceiptReceived(true,QJsonDocument::fromJson(data).object(),QString());reply->deleteLater();});
 }
 
 void NetworkManager::getRewardChances(int tableId){
-    QNetworkReply*reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/reward/chances/table/%1").arg(tableId))));
+    QNetworkReply*reply=manager->get(QNetworkRequest(ServerConfig::apiUrl(QStringLiteral("/reward/chances/table/%1").arg(tableId))));
     connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QJsonObject e=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(false,0,0,e["message"].toString(reply->errorString()));}else{QJsonObject o=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(true,o["orderId"].toInt(),o["chances"].toInt(),QString());}reply->deleteLater();});
 }
 void NetworkManager::getRewardChancesByOrder(int orderId){
-    QNetworkReply*reply=manager->get(QNetworkRequest(QUrl(QString("http://localhost:8080/reward/chances/order/%1").arg(orderId))));
+    QNetworkReply*reply=manager->get(QNetworkRequest(ServerConfig::apiUrl(QStringLiteral("/reward/chances/order/%1").arg(orderId))));
     connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();if(reply->error()!=QNetworkReply::NoError){QJsonObject e=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(false,0,0,e["message"].toString(reply->errorString()));}else{QJsonObject o=QJsonDocument::fromJson(data).object();emit rewardChancesReceived(true,o["orderId"].toInt(),o["chances"].toInt(),QString());}reply->deleteLater();});
 }
 void NetworkManager::drawReward(int orderId){
-    QNetworkRequest request{QUrl(QString("http://localhost:8080/reward/draw/%1").arg(orderId))};QNetworkReply*reply=manager->post(request,QByteArray());
+    QNetworkRequest request{ServerConfig::apiUrl(QStringLiteral("/reward/draw/%1").arg(orderId))};QNetworkReply*reply=manager->post(request,QByteArray());
     connect(reply,&QNetworkReply::finished,this,[this,reply](){const QByteArray data=reply->readAll();QJsonObject o=QJsonDocument::fromJson(data).object();if(reply->error()!=QNetworkReply::NoError)emit rewardDrawFinished(false,QString(),0,o["message"].toString(reply->errorString()));else emit rewardDrawFinished(true,o["rewardName"].toString(),o["remainingChances"].toInt(),QString());reply->deleteLater();});
 }
 
@@ -493,12 +494,8 @@ void NetworkManager::drawReward(int orderId){
 void NetworkManager::checkOrderCanPay(int orderId)
 {
 
-    QUrl url(
-        QString(
-            "http://localhost:8080/order/canPay/%1"
-            )
-            .arg(orderId)
-        );
+    const QUrl url = ServerConfig::apiUrl(
+        QStringLiteral("/order/canPay/%1").arg(orderId));
 
     QNetworkRequest request(url);
     QNetworkReply *reply =

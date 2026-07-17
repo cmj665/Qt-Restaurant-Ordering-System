@@ -3,7 +3,7 @@ package org.csu.restaurant.restaurantserver.service.impl;
 import org.csu.restaurant.restaurantserver.entity.Admin;
 import org.csu.restaurant.restaurantserver.mapper.AdminMapper;
 import org.csu.restaurant.restaurantserver.service.AdminService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -13,10 +13,9 @@ import java.util.HexFormat;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
-
-    @Autowired
-    private AdminMapper adminMapper;
+    private final AdminMapper adminMapper;
 
     @Override
     public Admin login(String username, String password){

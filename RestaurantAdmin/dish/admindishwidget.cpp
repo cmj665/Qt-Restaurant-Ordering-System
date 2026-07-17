@@ -1,6 +1,7 @@
 #include "admindishwidget.h"
 #include "disheditdialog.h"
 #include "../network/networkmanager.h"
+#include "../network/serverconfig.h"
 #include <QColor>
 #include <QDateTime>
 #include <QDialog>
@@ -150,8 +151,7 @@ AdminDishWidget::AdminDishWidget(QWidget *parent)
                 QUrl imageUrl;
                 // 判断图片路径，拼接完整url，发起网络请求
                 if(imagePath.startsWith("http://")||imagePath.startsWith("https://")) imageUrl=QUrl(imagePath);
-                else if(imagePath.startsWith("/images/")) imageUrl=QUrl("http://localhost:8080"+imagePath);
-                else imageUrl=QUrl("http://localhost:8080/images/"+imagePath);
+                    else imageUrl=ServerConfig::imageUrl(imagePath);
                 QPointer<QLabel> safeThumbnail(thumbnail);
                 QNetworkReply *reply=imageManager->get(QNetworkRequest(imageUrl));
                 connect(reply,&QNetworkReply::finished,this,[reply,safeThumbnail](){

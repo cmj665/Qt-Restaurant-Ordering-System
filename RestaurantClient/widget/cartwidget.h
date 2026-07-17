@@ -33,6 +33,7 @@ QT_END_NAMESPACE
 class CartWidget : public QWidget
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(CartWidget)
 
 public:
     explicit CartWidget(int tableId, QWidget *parent = nullptr);
